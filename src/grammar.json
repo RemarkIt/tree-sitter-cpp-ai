@@ -12994,6 +12994,36 @@
                 "type": "SEQ",
                 "members": [
                   {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_class_leading_uncertain_specifier"
+                    },
+                    "named": true,
+                    "value": "uncertain_specifier"
+                  },
+                  {
+                    "type": "FIELD",
+                    "name": "name",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_class_name"
+                    }
+                  },
+                  {
+                    "type": "FIELD",
+                    "name": "body",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "field_declaration_list"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "SEQ",
+                "members": [
+                  {
                     "type": "REPEAT",
                     "content": {
                       "type": "SYMBOL",
@@ -13193,6 +13223,15 @@
       "content": {
         "type": "SYMBOL",
         "name": "_leading_annotation"
+      },
+      "named": true,
+      "value": "identifier"
+    },
+    "_class_leading_uncertain_specifier": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_class_leading_annotation"
       },
       "named": true,
       "value": "identifier"
@@ -15501,7 +15540,7 @@
                 "type": "REPEAT1",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "attribute_specifier"
+                  "name": "_function_attribute"
                 }
               },
               {
@@ -15520,7 +15559,7 @@
                 "type": "REPEAT",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "attribute_specifier"
+                  "name": "_function_attribute"
                 }
               },
               {
@@ -15529,6 +15568,58 @@
                   "type": "SYMBOL",
                   "name": "type_qualifier"
                 }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "_function_attribute": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "attribute_specifier"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_function_suffix_specifier"
+          },
+          "named": true,
+          "value": "uncertain_specifier"
+        }
+      ]
+    },
+    "_function_suffix_specifier": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_function_suffix_annotation"
+            },
+            "named": true,
+            "value": "identifier"
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "arguments",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "argument_list"
+                }
+              },
+              {
+                "type": "BLANK"
               }
             ]
           }
@@ -15576,7 +15667,7 @@
                     "type": "REPEAT1",
                     "content": {
                       "type": "SYMBOL",
-                      "name": "attribute_specifier"
+                      "name": "_function_attribute"
                     }
                   },
                   {
@@ -15595,7 +15686,7 @@
                     "type": "REPEAT",
                     "content": {
                       "type": "SYMBOL",
-                      "name": "attribute_specifier"
+                      "name": "_function_attribute"
                     }
                   },
                   {
@@ -20467,6 +20558,14 @@
     {
       "type": "SYMBOL",
       "name": "_class_annotation_callee"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_class_leading_annotation"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_function_suffix_annotation"
     },
     {
       "type": "SYMBOL",

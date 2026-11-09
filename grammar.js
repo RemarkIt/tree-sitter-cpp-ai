@@ -203,6 +203,9 @@ module.exports = grammar(C, {
     // After a class key: `A` in `class A Name {`, certified by a member declaration's own `;`
     // inside the block, which a braced initializer of `A`'s own declarator never contains.
     $._class_leading_annotation,
+    // After a function declarator's parameters: `A` in `f() A {` or `f() A(x);`, certified by a
+    // token that can only end or continue a function declarator after the annotation.
+    $._function_suffix_annotation,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -1081,8 +1084,20 @@ module.exports = grammar(C, {
     ),
 
     _function_attributes_start: $ => prec(1, choice(
-      seq(repeat1($.attribute_specifier), repeat($.type_qualifier)),
-      seq(repeat($.attribute_specifier), repeat1($.type_qualifier)),
+      seq(repeat1($._function_attribute), repeat($.type_qualifier)),
+      seq(repeat($._function_attribute), repeat1($.type_qualifier)),
+    )),
+
+    _function_attribute: $ => choice(
+      $.attribute_specifier,
+      alias($._function_suffix_specifier, $.uncertain_specifier),
+    ),
+
+    // An identifier after a function declarator's parameters is never ordinary C++ syntax: it is
+    // an unexpanded annotation such as `f() NOEXCEPT_MACRO {` or `f() LOCKS_EXCLUDED(mu);`.
+    _function_suffix_specifier: $ => prec.right(seq(
+      alias($._function_suffix_annotation, $.identifier),
+      optional(field('arguments', $.argument_list)),
     )),
 
     _function_exception_specification: $ => choice(
@@ -1093,8 +1108,8 @@ module.exports = grammar(C, {
     _function_attributes_end: $ => prec.right(seq(
       optional($.gnu_asm_expression),
       choice(
-        seq(repeat1($.attribute_specifier), repeat($.attribute_declaration)),
-        seq(repeat($.attribute_specifier), repeat1($.attribute_declaration)),
+        seq(repeat1($._function_attribute), repeat($.attribute_declaration)),
+        seq(repeat($._function_attribute), repeat1($.attribute_declaration)),
       ),
     )),
 

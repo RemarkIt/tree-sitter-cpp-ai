@@ -615,6 +615,10 @@
           "named": true
         },
         {
+          "type": "uncertain_specifier",
+          "named": true
+        },
+        {
           "type": "virtual_specifier",
           "named": true
         }
@@ -3664,6 +3668,10 @@
         },
         {
           "type": "type_qualifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         },
         {

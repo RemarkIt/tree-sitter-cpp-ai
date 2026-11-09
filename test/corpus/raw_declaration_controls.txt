@@ -42,3 +42,92 @@ struct Holder {
         (function_declarator (field_identifier) (parameter_list))
         (compound_statement
           (return_statement))))))
+
+==================
+Function declarator suffix controls
+==================
+struct Base {
+  int count(int value) const noexcept;
+  auto next() -> int;
+  virtual void run() const override final;
+  Base() noexcept = default;
+  void wait() try {} catch (...) {}
+  void call(int value) __attribute__((noinline));
+};
+TYPE_OF(int) value;
+TYPE_OF(int) other = 3;
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))
+          (type_qualifier)
+          (noexcept)))
+      (field_declaration
+        (placeholder_type_specifier
+          (auto))
+        (function_declarator
+          (field_identifier)
+          (parameter_list)
+          (trailing_return_type
+            (type_descriptor
+              (primitive_type)))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)
+          (type_qualifier)
+          (virtual_specifier)
+          (virtual_specifier)))
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list)
+          (noexcept))
+        (default_method_clause))
+      (function_definition
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list))
+        (try_statement
+          (compound_statement)
+          (catch_clause
+            (parameter_list)
+            (compound_statement))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier))))
+        (attribute_specifier
+          (argument_list
+            (identifier))))))
+  (declaration
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (type_descriptor
+          (primitive_type))))
+    (identifier))
+  (declaration
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (type_descriptor
+          (primitive_type))))
+    (init_declarator
+      (identifier)
+      (number_literal))))

@@ -610,3 +610,117 @@ Reader::Reader(Device device)
           (number_literal))))
     (preproc_inline_conditional)
     (compound_statement)))
+
+==================
+Function suffix annotations after parameters
+==================
+size_t read_bytes(int length) WARN_UNUSED_RESULT;
+void report(const char *format, ...) PRINTF_LIKE(1, 2);
+int compute(int value) NOEXCEPT_MACRO
+{
+  return value;
+}
+class Lock {
+  explicit Lock(Mutex *mu) ACQUIRE(mu) : mu_(mu) {}
+  Lock() NOEXCEPT_MACRO = default;
+  void wait(int count)
+      REQUIRES(mu_);
+  virtual void log(const char *format) PRINTF_LIKE(2, 3) = 0;
+};
+---
+(translation_unit
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (uncertain_specifier
+        (identifier))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_qualifier)
+          (primitive_type)
+          (pointer_declarator
+            (identifier))))
+      (uncertain_specifier
+        (identifier)
+        (argument_list
+          (number_literal)
+          (number_literal)))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (uncertain_specifier
+        (identifier)))
+    (compound_statement
+      (return_statement
+        (identifier))))
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (function_definition
+        (explicit_function_specifier)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (pointer_declarator
+                (identifier))))
+          (uncertain_specifier
+            (identifier)
+            (argument_list
+              (identifier))))
+        (field_initializer_list
+          (field_initializer
+            (field_identifier)
+            (argument_list
+              (identifier))))
+        (compound_statement))
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list)
+          (uncertain_specifier
+            (identifier)))
+        (default_method_clause))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))
+          (uncertain_specifier
+            (identifier)
+            (argument_list
+              (identifier)))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_qualifier)
+              (primitive_type)
+              (pointer_declarator
+                (identifier))))
+          (uncertain_specifier
+            (identifier)
+            (argument_list
+              (number_literal)
+              (number_literal))))
+        (number_literal)))))

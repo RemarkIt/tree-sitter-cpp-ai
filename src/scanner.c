@@ -20,6 +20,7 @@ enum TokenType {
     PREPROC_END_OF_INPUT,
     CLASS_ANNOTATION_CALLEE,
     CLASS_LEADING_ANNOTATION,
+    FUNCTION_SUFFIX_ANNOTATION,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -62,6 +63,10 @@ static inline bool is_identifier_start(int32_t c) { return is_ascii_letter(c) ||
 
 static inline bool is_identifier_part(int32_t c) {
     return is_ascii_letter(c) || (c >= '0' && c <= '9') || c == '_' || c == '$' || c > 0x7f;
+}
+
+static inline bool word_is(const Word *word, const char *text) {
+    return !word->truncated && strcmp(word->text, text) == 0;
 }
 
 static bool read_word(TSLexer *lexer, Word *word) {
@@ -160,6 +165,13 @@ static const char *const CONTINUATION_WORDS[] = {
 /// `const`, `volatile`, `override` or `final`, and are only declared where no expression starts.
 static const char *const DECLARATOR_SUFFIX_WORDS[] = {
     "__asm", "__asm__", "__attribute", "__attribute__", "asm", "noexcept", "requires", "throw", "try", NULL,
+};
+
+/// Keywords that end or continue a function declarator after an annotation following its
+/// parameters, as in `f() A const`, `f() A noexcept` or `f() A override`.
+static const char *const FUNCTION_SUFFIX_KEYWORDS[] = {
+    "__asm", "__asm__", "__attribute", "__attribute__", "asm", "const", "final", "noexcept", "override",
+    "requires", "throw", "try", "volatile", NULL,
 };
 
 /// Upper bound on bytes examined after a candidate callee, keeping scans linear in practice.
@@ -434,6 +446,36 @@ static bool braces_close_initializer(TSLexer *lexer) {
 
 typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE } MacroShape;
 
+/// After `C(...) A` (consumed), with optional arguments of `A` next: true when a member
+/// initializer list or `= default`/`= delete` follows, which ends a constructor declarator with a
+/// suffix annotation `A` and never the declarator `A` of a function-like macro type `C(...)`.
+static bool constructor_annotation_follows(TSLexer *lexer) {
+    skip_horizontal_space(lexer);
+    if (lexer->lookahead == '(') {
+        bool literal_argument = false;
+        if (!skip_balanced_arguments(lexer, &literal_argument)) {
+            return false;
+        }
+    }
+    bool newline = false;
+    if (!skip_trivia(lexer, &newline)) {
+        return false;
+    }
+    int32_t c = lexer->lookahead;
+    if (c != ':' && c != '=') {
+        return false;
+    }
+    advance(lexer);
+    if (c == ':') {
+        return lexer->lookahead != ':';
+    }
+    if (!skip_trivia(lexer, &newline)) {
+        return false;
+    }
+    Word word;
+    return read_word(lexer, &word) && (word_is(&word, "default") || word_is(&word, "delete"));
+}
+
 /// After callee `A` (consumed) and `(`: classify `A(...)` by what follows its balanced argument
 /// list. It is a statement-like invocation when nothing can continue an expression or
 /// declarator, and a type when a declarator follows on the same line.
@@ -471,7 +513,7 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
         if (!read_word(lexer, &word) || word_in(&word, KEYWORDS) || lexer->lookahead == '"' || lexer->lookahead == '\'') {
             return NOT_MACRO;
         }
-        return MACRO_TYPE;
+        return constructor_annotation_follows(lexer) ? NOT_MACRO : MACRO_TYPE;
     }
     if (c == '#' || c == '~') {
         return MACRO_INVOCATION;
@@ -695,10 +737,6 @@ static void skip_directive_line(TSLexer *lexer) {
             advance(lexer);
         }
     }
-}
-
-static inline bool word_is(const Word *word, const char *text) {
-    return !word->truncated && strcmp(word->text, text) == 0;
 }
 
 /// From `#`, consume a directive after which the same preprocessing path continues; false at a
@@ -974,8 +1012,59 @@ static bool scan_preproc_conditional(Scanner *scanner, TSLexer *lexer, const boo
     return true;
 }
 
+/// Upper bound on annotations stacked after one function declarator's parameters.
+#define MAX_FUNCTION_SUFFIX_ANNOTATIONS 8
+
+/// After a function declarator's parameters and annotation `A` (consumed): certify `A` when it,
+/// with optional balanced arguments and further such annotations, is followed by a token that ends
+/// or continues a function declarator: a body or initializer list, `;`, `=`, `->`, `[[` or a
+/// declarator-suffix keyword. An identifier can never follow the parameters in ordinary syntax.
+/// Two adjacent bare words stay unclaimed: like `T name(...)` after a misread leading annotation
+/// call, or a K&R parameter declaration `T name;`, they may be a type and its declarator.
+static bool function_suffix_follows(TSLexer *lexer) {
+    unsigned bare_words = 1;
+    for (unsigned count = 0; count < MAX_FUNCTION_SUFFIX_ANNOTATIONS; count++) {
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == '(') {
+            bool literal_argument = false;
+            if (!skip_balanced_arguments(lexer, &literal_argument)) {
+                return false;
+            }
+            bare_words = 0;
+        }
+        bool newline = false;
+        if (!skip_trivia(lexer, &newline) || lexer->eof(lexer)) {
+            return false;
+        }
+        int32_t c = lexer->lookahead;
+        if (c == '{' || c == ';' || c == ',') {
+            return true;
+        }
+        if (c == ':' || c == '=' || c == '-' || c == '[') {
+            advance(lexer);
+            int32_t next = lexer->lookahead;
+            return c == '-' ? next == '>' : c == '[' ? next == '[' : next != c;
+        }
+        Word word;
+        if (!read_word(lexer, &word) || lexer->lookahead == '"' || lexer->lookahead == '\'') {
+            return false;
+        }
+        if (word_in(&word, KEYWORDS)) {
+            return word_in(&word, FUNCTION_SUFFIX_KEYWORDS);
+        }
+        if (++bare_words > 1) {
+            return false;
+        }
+    }
+    return false;
+}
+
 /// Certify the identifier just read, whose end is marked, as an annotation or macro token.
 static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols, bool newline_before) {
+    if (valid_symbols[FUNCTION_SUFFIX_ANNOTATION]) {
+        lexer->result_symbol = FUNCTION_SUFFIX_ANNOTATION;
+        return function_suffix_follows(lexer);
+    }
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
         if (valid_symbols[CLASS_ANNOTATION_CALLEE]) {
@@ -1143,7 +1232,8 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
 
     bool identifier_tokens = valid_symbols[LEADING_ANNOTATION] || valid_symbols[DECLARATOR_ANNOTATION] ||
                              valid_symbols[MACRO_INVOCATION_CALLEE] || valid_symbols[MACRO_TYPE_CALLEE] ||
-                             valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION];
+                             valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION] ||
+                             valid_symbols[FUNCTION_SUFFIX_ANNOTATION];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {
