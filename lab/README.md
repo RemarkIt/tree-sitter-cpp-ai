@@ -81,6 +81,36 @@ Native corpus tests live in [test/corpus](../test/corpus/). The
 `raw_*.txt` files pair each recovery shape with ordinary controls that must keep
 their upstream reading.
 
+### Writing fixtures and lab tests
+
+- Group fixtures by failure family. Pair every positive case with ordinary
+  controls: identifiers and expressions, macro redefinition, includes, C, and
+  macro-like text in literals and comments. Keep braced initialization,
+  qualified constructors/destructors and neighboring method scopes as recovery
+  controls.
+- Assert an expression's node kind as well as its source; call controls must
+  not inherit the binary-expression default.
+- Constructor and destructor expectations have a null return type; name
+  identity ignores legal whitespace between tokens.
+- The Clang oracle includes named fields but not generated lambda closure
+  members; locals in lambda bodies stay in the population. Preserve Clang's
+  file elision at macro spelling and expansion locations without substituting
+  spelling offsets for physical ranges.
+- The projection follows reference and parenthesized declarators even without
+  a named `declarator` field, skipping comments and calling-convention modifiers.
+- Keep macro and uncertainty regions separate from syntax errors and from
+  explicit projection gaps.
+- Test ownership: `test_bench.py` covers oracle agreement and the control
+  candidate's known defects (they certify measurement, not acceptance);
+  `test_dev.py` covers input identity, non-destructive setup, workspace
+  synchronization, cache and library integrity, and returning to cached inputs
+  restoring both generated sources and the selected receipt; `test_census.py`
+  and `test_syntax_census.py` cover manifest hashes and fixed denominators,
+  declaration multiplicity and range deltas, timing aggregation with controlled
+  clocks, parse-work budgets and incremental/fresh agreement; `test_tools.py`
+  covers the investigation tools. Acceptance timing uses real native parsing and
+  excludes compiler, setup and I/O costs.
+
 ## Corpora, census and timing
 
 ```sh
