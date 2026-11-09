@@ -52,7 +52,128 @@ const ASSIGNMENT_OPERATORS = [
 
 const commaSep = C.commaSep;
 const commaSep1 = C.commaSep1;
-const preprocIf = C.preprocIf;
+
+/**
+ * Creates a preprocessor directive token identical to the inherited C grammar's.
+ *
+ * @param {string} command
+ * @returns {AliasRule}
+ */
+function preprocessor(command) {
+  return alias(new RegExp('#[ \t]*' + command), '#' + command);
+}
+
+/**
+ * The inherited C conditional family with never-produced scanner probes. The `#if`
+ * probe is valid exactly where a structured conditional can start, so the scanner only
+ * takes conditionals in place where the structured rules cannot parse them.
+ *
+ * @param {string} suffix
+ * @param {($: GrammarSymbols<string>) => RuleOrLiteral} content
+ * @param {number} precedence
+ * @returns {RuleBuilders<string, string>}
+ */
+function probedPreprocIf(suffix, content, precedence = 0) {
+  /**
+   * @param {GrammarSymbols<string>} $
+   * @returns {ChoiceRule}
+   */
+  function alternativeBlock($) {
+    return choice(
+      suffix ? alias($['preproc_else' + suffix], $.preproc_else) : $.preproc_else,
+      suffix ? alias($['preproc_elif' + suffix], $.preproc_elif) : $.preproc_elif,
+      suffix ? alias($['preproc_elifdef' + suffix], $.preproc_elifdef) : $.preproc_elifdef,
+    );
+  }
+
+  return {
+    ['preproc_if' + suffix]: $ => prec(precedence, seq(
+      optional($._preproc_if_probe),
+      preprocessor('if'),
+      field('condition', $._preproc_expression),
+      choice('\n', $._preproc_end_of_input),
+      repeat(content($)),
+      field('alternative', optional(alternativeBlock($))),
+      preprocessor('endif'),
+    )),
+
+    ['preproc_ifdef' + suffix]: $ => prec(precedence, seq(
+      optional($._preproc_if_probe),
+      choice(preprocessor('ifdef'), preprocessor('ifndef')),
+      field('name', macroName($)),
+      repeat(content($)),
+      field('alternative', optional(alternativeBlock($))),
+      preprocessor('endif'),
+    )),
+
+    ['preproc_else' + suffix]: $ => prec(precedence, seq(
+      preprocessor('else'),
+      repeat(content($)),
+    )),
+
+    ['preproc_elif' + suffix]: $ => prec(precedence, seq(
+      preprocessor('elif'),
+      field('condition', $._preproc_expression),
+      choice('\n', $._preproc_end_of_input),
+      repeat(content($)),
+      field('alternative', optional(alternativeBlock($))),
+    )),
+
+    ['preproc_elifdef' + suffix]: $ => prec(precedence, seq(
+      choice(preprocessor('elifdef'), preprocessor('elifndef')),
+      field('name', macroName($)),
+      repeat(content($)),
+      field('alternative', optional(alternativeBlock($))),
+    )),
+  };
+}
+
+/**
+ * A directive on the last line of a file may end at end of input instead of a newline.
+ *
+ * @param {GrammarSymbols<string>} $
+ * @param {SeqRule} original
+ * @returns {SeqRule}
+ */
+function withInputEndLine($, original) {
+  const members = original.members;
+  return seq(...members.slice(0, -1), choice(members[members.length - 1], $._preproc_end_of_input));
+}
+
+/**
+ * A macro name, which may spell a reserved word such as `long`.
+ *
+ * @param {GrammarSymbols<string>} $
+ *
+ * @returns {Rule}
+ */
+function macroName($) {
+  return reserved('macro_name', $.identifier);
+}
+
+/**
+ * Constructor/destructor definition tail shared by restricted and block forms.
+ *
+ * @param {GrammarSymbols<string>} $
+ * @param {RuleOrLiteral} declarator
+ * @returns {SeqRule}
+ */
+function constructorDefinition($, declarator) {
+  return seq(
+    repeat($._constructor_specifiers),
+    field('declarator', declarator),
+    choice(
+      seq(
+        optional($.field_initializer_list),
+        field('body', $.compound_statement),
+      ),
+      alias($.constructor_try_statement, $.try_statement),
+      $.default_method_clause,
+      $.delete_method_clause,
+      $.pure_virtual_clause,
+    ),
+  );
+}
 
 module.exports = grammar(C, {
   name: 'cpp',
@@ -60,7 +181,31 @@ module.exports = grammar(C, {
   externals: $ => [
     $.raw_string_delimiter,
     $.raw_string_content,
+    $._leading_annotation,
+    $._declarator_annotation,
+    // Never produced: its validity tells the scanner that an expression may start here.
+    $._expression_start_probe,
+    $._macro_invocation_callee,
+    // Never produced: its validity marks a braced-initializer element position.
+    $._initializer_start_probe,
+    $._macro_type_callee,
+    // A conditional that cannot be parsed in place: the directive line or `#endif` closing it.
+    $.preproc_inline_conditional,
+    // A conditional's directive lines and every branch except the last, kept opaque.
+    $.preproc_inactive_branch,
+    // Never produced: validity marks where a structured `#if` can be parsed.
+    $._preproc_if_probe,
+    // Zero-width end of a directive on the last line; its validity also marks a directive line
+    // that still needs its newline.
+    $._preproc_end_of_input,
+    // After a class key: `A` in `class A(...) Name`, certified by the name after the arguments.
+    $._class_annotation_callee,
   ],
+
+  extras: ($, original) => original.concat([
+    $.preproc_inline_conditional,
+    $.preproc_inactive_branch,
+  ]),
 
   conflicts: $ => [
     // C
@@ -105,20 +250,49 @@ module.exports = grammar(C, {
     [$.qualified_field_identifier, $.template_method, $.template_type],
     [$.type_specifier, $.template_type, $.template_function, $.expression],
     [$.splice_type_specifier, $.splice_expression],
+    // An unexpanded class-head annotation competes with an elaborated class name.
+    [$._class_name, $.uncertain_specifier],
+    // Keyword-type macro arguments compete with unnamed parameters.
+    [$.type_specifier, $._keyword_type_argument],
+    [$.type_specifier, $._sized_type_argument],
+    [$.type_qualifier, $._qualified_type_argument],
+    // `unsigned(` may begin a sized type or a functional cast.
+    [$.sized_type_specifier, $.call_expression],
+    // Constructor names compete with called expressions and type names before `(`.
+    [$.type_specifier, $.expression, $._constructor_name],
+    [$.expression, $._constructor_name],
+    [$.type_specifier, $._constructor_name],
+    // `T* p(` may declare a function returning a pointer or directly initialize a pointer.
+    [$.pointer_declarator, $.function_declarator, $._direct_initialized_pointer_declarator],
+    [$.function_declarator, $._direct_initialized_reference_declarator, $.reference_declarator],
+    // A macro name after a string literal may continue the concatenation.
+    [$._string, $.concatenated_string],
   ],
 
   inline: ($, original) => original.concat([
     $._namespace_identifier,
   ]),
 
+  reserved: {
+    // Size modifiers never name anything, so `f(unsigned(v))` cannot declare a function `unsigned`.
+    global: _ => ['signed', 'unsigned', 'long', 'short'],
+    // The preprocessor may define and test macros spelled like keywords.
+    macro_name: _ => [],
+  },
+
   precedences: $ => [
     [$.argument_list, $.type_qualifier],
     [$._expression_not_binary, $._class_name],
+    // Before `(` an indirection completes only for direct initialization; an ordinary pointer or
+    // reference declarator never wraps the declarator of a following function declarator.
+    [$._direct_initialized_pointer_declarator, $.pointer_declarator],
+    [$._direct_initialized_reference_declarator, $.reference_declarator],
   ],
 
   rules: {
     _top_level_item: ($, original) => choice(
       ...original.members.filter((member) => member.content?.name != '_old_style_function_definition'),
+      $.uncertain_macro_invocation,
       $.namespace_definition,
       $.concept_definition,
       $.namespace_alias_definition,
@@ -156,13 +330,72 @@ module.exports = grammar(C, {
       $.import_declaration,
       alias($.preproc_if_in_block, $.preproc_if),
       alias($.preproc_ifdef_in_block, $.preproc_ifdef),
-      alias($.constructor_or_destructor_definition, $.function_definition),
+      alias($._block_constructor_or_destructor_definition, $.function_definition),
       alias($.operator_cast_definition, $.function_definition),
       alias($.operator_cast_declaration, $.declaration),
     ),
 
-    ...preprocIf('', $ => $._top_level_item),
-    ...preprocIf('_in_block', $ => $._block_item),
+    ...probedPreprocIf('', $ => $._top_level_item),
+    ...probedPreprocIf('_in_block', $ => $._block_item),
+    ...probedPreprocIf('_in_field_declaration_list', $ => $._field_declaration_list_item),
+    ...probedPreprocIf('_in_enumerator_list', $ => seq($.enumerator, ',')),
+    ...probedPreprocIf('_in_enumerator_list_no_comma', $ => $.enumerator, -1),
+
+    preproc_include: ($, original) => withInputEndLine($, original),
+    // `__has_include(<header>)` and `__has_include("header")` take a header name.
+    preproc_argument_list: $ => seq(
+      '(',
+      commaSep(choice($._preproc_expression, $.system_lib_string, $.string_literal)),
+      ')',
+    ),
+    preproc_defined: $ => choice(
+      prec(PREC.CALL, seq('defined', '(', macroName($), ')')),
+      seq('defined', macroName($)),
+    ),
+    // A comment, possibly spanning lines, may separate parts of a continued macro body.
+    preproc_def: $ => seq(
+      preprocessor('define'),
+      field('name', macroName($)),
+      field('value', repeat($.preproc_arg)),
+      choice(token.immediate(/\r?\n/), $._preproc_end_of_input),
+    ),
+    preproc_function_def: $ => seq(
+      preprocessor('define'),
+      field('name', macroName($)),
+      field('parameters', $.preproc_params),
+      field('value', repeat($.preproc_arg)),
+      choice(token.immediate(/\r?\n/), $._preproc_end_of_input),
+    ),
+    preproc_call: ($, original) => withInputEndLine($, original),
+
+    // A macro invocation without a terminating semicolon, with or without arguments. The scanner
+    // certifies the name only when no ordinary expression or declaration can continue after it;
+    // ordinary arguments, callees and nested blocks stay parsed.
+    uncertain_macro_invocation: $ => prec.right(seq(
+      field('macro', alias($._macro_invocation_callee, $.identifier)),
+      optional(field('arguments', $.argument_list)),
+      optional(field('body', $.compound_statement)),
+      optional(';'),
+    )),
+
+    // A function-like macro used as a type: the scanner certifies it only when a declarator
+    // follows on the same line, which an invocation expression can never be followed by.
+    uncertain_macro_type: $ => seq(
+      field('macro', alias($._macro_type_callee, $.identifier)),
+      field('arguments', $.argument_list),
+    ),
+
+    initializer_list: $ => seq(
+      '{',
+      commaSep(choice(
+        $.initializer_pair,
+        $.expression,
+        $.initializer_list,
+        $._initializer_start_probe,
+      )),
+      optional(','),
+      '}',
+    ),
 
     // Types
 
@@ -190,6 +423,7 @@ module.exports = grammar(C, {
     ),
 
     type_specifier: $ => choice(
+      $.uncertain_macro_type,
       $.struct_specifier,
       $.union_specifier,
       $.enum_specifier,
@@ -245,6 +479,26 @@ module.exports = grammar(C, {
           optional($.virtual_specifier),
           optional($.base_class_clause),
           field('body', $.field_declaration_list),
+        ),
+        seq(
+          repeat1($.uncertain_specifier),
+          field('name', $._class_name),
+          optional($.virtual_specifier),
+          optional($.base_class_clause),
+          field('body', $.field_declaration_list),
+        ),
+        // `class M(args) Name` has no reading without an annotation, so unlike `class A b;`
+        // it may also declare the class without a body.
+        seq(
+          repeat($.uncertain_specifier),
+          alias($._uncertain_specifier_call, $.uncertain_specifier),
+          repeat(choice($.uncertain_specifier, alias($._uncertain_specifier_call, $.uncertain_specifier))),
+          field('name', $._class_name),
+          optional(seq(
+            optional($.virtual_specifier),
+            optional($.base_class_clause),
+            field('body', $.field_declaration_list),
+          )),
         ),
       ),
       optional($.attribute_specifier),
@@ -304,6 +558,52 @@ module.exports = grammar(C, {
       original,
       'virtual',
     ),
+
+    // A plain identifier beside the declared type and declarator cannot be ordinary C++
+    // syntax: it is an unexpanded annotation. Keep it explicit; never guess its expansion.
+    uncertain_specifier: $ => prec.dynamic(-1, $.identifier),
+
+    _uncertain_specifier_call: $ => seq(
+      alias($._class_annotation_callee, $.identifier),
+      field('arguments', $.argument_list),
+    ),
+
+    // The scanner certifies a leading annotation only when a keyword type follows on the same
+    // line, so neither ordinary parsing nor error recovery can invent one before a type name.
+    _leading_uncertain_specifier: $ => alias($._leading_annotation, $.identifier),
+
+    // Leading annotations may interleave with modifiers, so wherever a type can still begin the
+    // scanner sees this token as valid and does not certify a declarator annotation instead.
+    _declaration_specifiers: $ => prec.right(seq(
+      repeat(choice(
+        $._declaration_modifiers,
+        alias($._leading_uncertain_specifier, $.uncertain_specifier),
+      )),
+      field('type', $.type_specifier),
+      repeat($._declaration_modifiers),
+    )),
+
+    // Certified by the scanner only where neither a type nor an expression can begin, when the
+    // identifier is followed by another declarator token rather than ending the declarator.
+    _declarator_uncertain_specifier: $ => alias($._declarator_annotation, $.identifier),
+
+    // The negative dynamic precedence keeps ordinary readings, e.g. the product in `a * b * c;`.
+    annotated_declarator: $ => prec.dynamic(-3, prec.right(seq(
+      field('annotation', alias($._declarator_uncertain_specifier, $.uncertain_specifier)),
+      field('declarator', $._declarator),
+    ))),
+    annotated_field_declarator: $ => prec.dynamic(-3, prec.right(seq(
+      field('annotation', alias($._declarator_uncertain_specifier, $.uncertain_specifier)),
+      field('declarator', $._field_declarator),
+    ))),
+    annotated_type_declarator: $ => prec.dynamic(-3, prec.right(seq(
+      field('annotation', alias($._declarator_uncertain_specifier, $.uncertain_specifier)),
+      field('declarator', $._type_declarator),
+    ))),
+    abstract_annotated_declarator: $ => prec.dynamic(-3, prec.right(seq(
+      field('annotation', alias($._declarator_uncertain_specifier, $.uncertain_specifier)),
+      field('declarator', $._abstract_declarator),
+    ))),
 
     explicit_function_specifier: $ => choice(
       'explicit',
@@ -498,7 +798,7 @@ module.exports = grammar(C, {
       $._declaration_specifiers,
       field('declarator', optional(choice($._declarator, $.abstract_reference_declarator))),
       '=',
-      field('default_value', $.expression),
+      field('default_value', choice($.expression, $.initializer_list)),
     ),
 
     variadic_parameter_declaration: $ => seq(
@@ -528,7 +828,32 @@ module.exports = grammar(C, {
           $.initializer_list,
         )),
       ),
+      seq(
+        field('declarator', $._direct_initialized_declarator),
+        field('value', $.argument_list),
+      ),
     ),
+
+    // `T* p(expr)` and `T& r(expr)`: the indirection completes before `(`, so the parentheses
+    // can hold an expression. Ordinary pointer and reference declarators instead extend over
+    // `(` to declare functions returning them, and that reading wins whenever it parses.
+    _direct_initialized_declarator: $ => choice(
+      alias($._direct_initialized_pointer_declarator, $.pointer_declarator),
+      alias($._direct_initialized_reference_declarator, $.reference_declarator),
+    ),
+
+    _direct_initialized_pointer_declarator: $ => prec.dynamic(1, seq(
+      optional($.ms_based_modifier),
+      '*',
+      repeat($.ms_pointer_modifier),
+      repeat($.type_qualifier),
+      field('declarator', choice($._declarator, $._direct_initialized_declarator)),
+    )),
+
+    _direct_initialized_reference_declarator: $ => prec.dynamic(1, seq(
+      choice('&', '&&'),
+      choice($._declarator, $._direct_initialized_declarator),
+    )),
 
     operator_cast: $ => prec.right(1, seq(
       'operator',
@@ -557,6 +882,7 @@ module.exports = grammar(C, {
 
     _field_declaration_list_item: ($, original) => choice(
       original,
+      $.uncertain_macro_invocation,
       $.template_declaration,
       alias($.inline_method_definition, $.function_definition),
       alias($.constructor_or_destructor_definition, $.function_definition),
@@ -629,24 +955,30 @@ module.exports = grammar(C, {
       repeat1($.catch_clause),
     ),
 
-    constructor_or_destructor_definition: $ => seq(
-      repeat($._constructor_specifiers),
-      field('declarator', $.function_declarator),
-      choice(
-        seq(
-          optional($.field_initializer_list),
-          field('body', $.compound_statement),
-        ),
-        alias($.constructor_try_statement, $.try_statement),
-        $.default_method_clause,
-        $.delete_method_clause,
-        $.pure_virtual_clause,
-      ),
+    // A typeless declaration names a constructor or destructor directly; nested
+    // function or parenthesized pointer declarators need a declared type.
+    _constructor_declarator: $ => prec.dynamic(1, seq(
+      field('declarator', $._constructor_name),
+      $._function_declarator_seq,
+    )),
+
+    _constructor_name: $ => choice(
+      $.identifier,
+      $.qualified_identifier,
+      $.destructor_name,
+      $.operator_name,
     ),
+
+    constructor_or_destructor_definition: $ => constructorDefinition(
+      $, alias($._constructor_declarator, $.function_declarator),
+    ),
+
+    // Function bodies keep upstream's block-item recovery shape and GLR order.
+    _block_constructor_or_destructor_definition: $ => constructorDefinition($, $.function_declarator),
 
     constructor_or_destructor_declaration: $ => seq(
       repeat($._constructor_specifiers),
-      field('declarator', $.function_declarator),
+      field('declarator', alias($._constructor_declarator, $.function_declarator)),
       ';',
     ),
 
@@ -679,6 +1011,7 @@ module.exports = grammar(C, {
 
     _declarator: ($, original) => choice(
       original,
+      $.annotated_declarator,
       $.reference_declarator,
       $.qualified_identifier,
       $.template_function,
@@ -689,6 +1022,7 @@ module.exports = grammar(C, {
 
     _field_declarator: ($, original) => choice(
       original,
+      alias($.annotated_field_declarator, $.annotated_declarator),
       alias($.reference_field_declarator, $.reference_declarator),
       $.template_method,
       $.operator_name,
@@ -696,11 +1030,13 @@ module.exports = grammar(C, {
 
     _type_declarator: ($, original) => choice(
       original,
+      alias($.annotated_type_declarator, $.annotated_declarator),
       alias($.reference_type_declarator, $.reference_declarator),
     ),
 
     _abstract_declarator: ($, original) => choice(
       original,
+      alias($.abstract_annotated_declarator, $.annotated_declarator),
       $.abstract_reference_declarator,
     ),
 
@@ -758,9 +1094,14 @@ module.exports = grammar(C, {
       $._function_declarator_seq,
     )),
 
-    abstract_function_declarator: $ => seq(
-      field('declarator', optional($._abstract_declarator)),
-      $._function_declarator_seq,
+    abstract_function_declarator: $ => choice(
+      seq(
+        field('declarator', optional($._abstract_declarator)),
+        $._function_declarator_seq,
+      ),
+      // MSVC function type-id with a calling convention, e.g. `BOOL __stdcall(HWND)`.
+      // Inside parentheses the inherited `(__stdcall abstract-declarator)` reading wins.
+      prec(-1, seq($.ms_call_modifier, $._function_declarator_seq)),
     ),
 
     trailing_return_type: $ => seq('->', $.type_descriptor),
@@ -852,11 +1193,14 @@ module.exports = grammar(C, {
       repeat($.attribute_declaration),
       'using',
       optional(choice('namespace', 'enum')),
-      choice(
-        $.identifier,
-        $.qualified_identifier,
-        $.splice_type_specifier,
-      ),
+      commaSep1(seq(
+        choice(
+          $.identifier,
+          $.qualified_identifier,
+          $.splice_type_specifier,
+        ),
+        optional('...'),
+      )),
       ';',
     ),
 
@@ -908,6 +1252,7 @@ module.exports = grammar(C, {
 
     _non_case_statement: ($, original) => choice(
       original,
+      $.uncertain_macro_invocation,
       $.co_return_statement,
       $.co_yield_statement,
       $.for_range_loop,
@@ -1029,6 +1374,7 @@ module.exports = grammar(C, {
 
     _expression_not_binary: ($, original) => choice(
       original,
+      $._expression_start_probe,
       $.co_await_expression,
       $.requires_expression,
       $.requires_clause,
@@ -1077,13 +1423,21 @@ module.exports = grammar(C, {
       ']',
     ),
 
-    call_expression: ($, original) => prec.dynamic(1, choice(original, seq(
-      field('function', choice($.primitive_type, seq(
-        optional('typename'),
-        $.splice_type_specifier,
+    call_expression: ($, original) => choice(
+      prec.dynamic(1, choice(original, seq(
+        field('function', choice($.primitive_type, seq(
+          optional('typename'),
+          $.splice_type_specifier,
+        ))),
+        field('arguments', $.argument_list),
       ))),
-      field('arguments', $.argument_list),
-    ))),
+      // A functional cast such as `unsigned(v)` takes a single-word type. Where a declaration
+      // such as `unsigned(v);` or `long(*p) = 0;` is possible, the declaration wins.
+      prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
+        field('function', alias(choice('signed', 'unsigned', 'long', 'short'), $.primitive_type)),
+        field('arguments', $.argument_list),
+      )),
+    ),
 
     co_await_expression: $ => prec.left(PREC.UNARY, seq(
       field('operator', 'co_await'),
@@ -1372,12 +1726,93 @@ module.exports = grammar(C, {
         }));
     },
 
+    // C++ alternative operator spellings are ordinary tokens in conditional directives.
+    preproc_unary_expression: ($, original) => choice(
+      original,
+      prec.left(PREC.UNARY, seq(
+        field('operator', choice('not', 'compl')),
+        field('argument', $._preproc_expression),
+      )),
+    ),
+
+    preproc_binary_expression: ($, original) => choice(
+      original,
+      ...[
+        ['or', PREC.LOGICAL_OR],
+        ['and', PREC.LOGICAL_AND],
+        ['bitor', PREC.INCLUSIVE_OR],
+        ['xor', PREC.EXCLUSIVE_OR],
+        ['bitand', PREC.BITWISE_AND],
+        ['not_eq', PREC.EQUAL],
+      ].map(([operator, precedence]) => prec.left(precedence, seq(
+        field('left', $._preproc_expression),
+        // @ts-ignore
+        field('operator', operator),
+        field('right', $._preproc_expression),
+      ))),
+    ),
+
     // The compound_statement is added to parse macros taking statements as arguments, e.g. MYFORLOOP(1, 10, i, { foo(i); bar(i); })
-    argument_list: $ => seq(
+    // Macro arguments may also be empty, as in `M(a, )`.
+    argument_list: $ => {
+      const argument = choice(
+        $.expression,
+        $.initializer_list,
+        $.compound_statement,
+        alias($._keyword_type_argument, $.type_descriptor),
+        alias($._sized_type_argument, $.type_descriptor),
+        alias($._qualified_type_argument, $.type_descriptor),
+      );
+      return seq(
+        '(',
+        optional(choice(
+          seq(argument, repeat(seq(',', optional(argument)))),
+          seq(repeat1(','), optional(seq(argument, repeat(seq(',', optional(argument)))))),
+        )),
+        ')',
+      );
+    },
+
+    // GNU attribute arguments are names and expressions, never type-ids, so a keyword such as
+    // `const` in `__attribute__((const))` keeps its identifier reading.
+    attribute_specifier: $ => seq(
+      choice('__attribute__', '__attribute'),
       '(',
-      commaSep(choice($.expression, $.initializer_list, $.compound_statement)),
+      alias($._attribute_argument_list, $.argument_list),
       ')',
     ),
+
+    _attribute_argument_list: $ => seq(
+      '(',
+      commaSep(choice($.expression, $.initializer_list)),
+      ')',
+    ),
+
+    // Macro arguments such as `CHECK(bool)` that can only be types. They start with a primitive
+    // type so `unsigned(v)` and `__attribute__((const))` keep their identifier readings; any
+    // ordinary reading, even a parenthesized declarator, wins over this one.
+    _keyword_type_argument: $ => prec.dynamic(PREC.PAREN_DECLARATOR * 2, prec.right(seq(
+      field('type', $.primitive_type),
+      repeat($.type_qualifier),
+      field('declarator', optional(choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
+    ))),
+
+    // Macro arguments such as `va_arg(ap, const char *)`: a leading cv-qualifier begins a type.
+    // Like other type arguments, any ordinary reading wins over this one.
+    _qualified_type_argument: $ => prec.dynamic(PREC.PAREN_DECLARATOR * 2, prec.right(seq(
+      repeat1(alias(choice('const', 'volatile'), $.type_qualifier)),
+      field('type', $.type_specifier),
+      repeat($.type_qualifier),
+      field('declarator', optional(choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
+    ))),
+
+    // Macro arguments such as `va_arg(ap, unsigned long)`. Reserved size modifiers cannot be
+    // read as names, and like other type arguments any ordinary reading wins over this one.
+    _sized_type_argument: $ => prec.dynamic(PREC.PAREN_DECLARATOR * 2, prec.right(seq(
+      field('type', $.sized_type_specifier),
+      repeat($.type_qualifier),
+      field('declarator', optional(choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
+    ))),
 
     destructor_name: $ => prec(1, seq('~', $.identifier)),
 
@@ -1531,9 +1966,13 @@ module.exports = grammar(C, {
 
     this: _ => 'this',
 
+    // As in C, an unexpanded macro name may follow the first literal, e.g. `"%" PRIu64`.
     concatenated_string: $ => prec.right(seq(
-      choice($.identifier, $.string_literal, $.raw_string_literal),
-      choice($.string_literal, $.raw_string_literal),
+      choice(
+        seq($.identifier, choice($.string_literal, $.raw_string_literal)),
+        seq(choice($.string_literal, $.raw_string_literal), choice($.string_literal, $.raw_string_literal)),
+        seq(choice($.string_literal, $.raw_string_literal), $.identifier),
+      ),
       repeat(choice($.identifier, $.string_literal, $.raw_string_literal)),
     )),
 

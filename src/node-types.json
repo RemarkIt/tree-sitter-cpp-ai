@@ -22,6 +22,10 @@
       {
         "type": "abstract_reference_declarator",
         "named": true
+      },
+      {
+        "type": "annotated_declarator",
+        "named": true
       }
     ]
   },
@@ -29,6 +33,10 @@
     "type": "_declarator",
     "named": true,
     "subtypes": [
+      {
+        "type": "annotated_declarator",
+        "named": true
+      },
       {
         "type": "array_declarator",
         "named": true
@@ -84,6 +92,10 @@
     "named": true,
     "subtypes": [
       {
+        "type": "annotated_declarator",
+        "named": true
+      },
+      {
         "type": "array_declarator",
         "named": true
       },
@@ -125,6 +137,10 @@
     "type": "_type_declarator",
     "named": true,
     "subtypes": [
+      {
+        "type": "annotated_declarator",
+        "named": true
+      },
       {
         "type": "array_declarator",
         "named": true
@@ -418,6 +434,10 @@
         "named": true
       },
       {
+        "type": "uncertain_macro_invocation",
+        "named": true
+      },
+      {
         "type": "while_statement",
         "named": true
       }
@@ -473,6 +493,10 @@
       },
       {
         "type": "type_identifier",
+        "named": true
+      },
+      {
+        "type": "uncertain_macro_type",
         "named": true
       },
       {
@@ -560,6 +584,10 @@
         },
         {
           "type": "gnu_asm_expression",
+          "named": true
+        },
+        {
+          "type": "ms_call_modifier",
           "named": true
         },
         {
@@ -734,6 +762,44 @@
     }
   },
   {
+    "type": "annotated_declarator",
+    "named": true,
+    "fields": {
+      "annotation": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "uncertain_specifier",
+            "named": true
+          }
+        ]
+      },
+      "declarator": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "_abstract_declarator",
+            "named": true
+          },
+          {
+            "type": "_declarator",
+            "named": true
+          },
+          {
+            "type": "_field_declarator",
+            "named": true
+          },
+          {
+            "type": "_type_declarator",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "annotation",
     "named": true,
     "fields": {},
@@ -770,6 +836,14 @@
         },
         {
           "type": "preproc_defined",
+          "named": true
+        },
+        {
+          "type": "system_lib_string",
+          "named": true
+        },
+        {
+          "type": "type_descriptor",
           "named": true
         }
       ]
@@ -1382,6 +1456,10 @@
           "named": true
         },
         {
+          "type": "uncertain_macro_invocation",
+          "named": true
+        },
+        {
           "type": "while_statement",
           "named": true
         }
@@ -1518,6 +1596,10 @@
         },
         {
           "type": "ms_declspec_modifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         },
         {
@@ -2213,6 +2295,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
@@ -2663,6 +2749,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
@@ -2908,6 +2998,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
@@ -2978,6 +3072,10 @@
         },
         {
           "type": "type_definition",
+          "named": true
+        },
+        {
+          "type": "uncertain_macro_invocation",
           "named": true
         },
         {
@@ -3390,6 +3488,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
@@ -3668,6 +3770,10 @@
         },
         {
           "type": "type_qualifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         }
       ]
@@ -4781,6 +4887,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
@@ -4825,6 +4935,10 @@
           {
             "type": "expression",
             "named": true
+          },
+          {
+            "type": "initializer_list",
+            "named": true
           }
         ]
       },
@@ -4861,6 +4975,10 @@
         },
         {
           "type": "type_qualifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         }
       ]
@@ -4943,6 +5061,10 @@
         },
         {
           "type": "type_qualifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         }
       ]
@@ -5234,7 +5356,7 @@
         ]
       },
       "value": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
           {
@@ -5764,7 +5886,7 @@
         ]
       },
       "value": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
           {
@@ -6792,6 +6914,10 @@
           "named": true
         },
         {
+          "type": "uncertain_specifier",
+          "named": true
+        },
+        {
           "type": "virtual_specifier",
           "named": true
         }
@@ -7071,6 +7197,10 @@
         },
         {
           "type": "type_qualifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         }
       ]
@@ -7432,6 +7562,10 @@
           "named": true
         },
         {
+          "type": "uncertain_macro_invocation",
+          "named": true
+        },
+        {
           "type": "using_declaration",
           "named": true
         },
@@ -7656,6 +7790,94 @@
     }
   },
   {
+    "type": "uncertain_macro_invocation",
+    "named": true,
+    "fields": {
+      "arguments": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "argument_list",
+            "named": true
+          }
+        ]
+      },
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "compound_statement",
+            "named": true
+          }
+        ]
+      },
+      "macro": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "uncertain_macro_type",
+    "named": true,
+    "fields": {
+      "arguments": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "argument_list",
+            "named": true
+          }
+        ]
+      },
+      "macro": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "uncertain_specifier",
+    "named": true,
+    "fields": {
+      "arguments": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "argument_list",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "union_specifier",
     "named": true,
     "fields": {
@@ -7714,6 +7936,10 @@
         },
         {
           "type": "ms_declspec_modifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         },
         {
@@ -7881,6 +8107,10 @@
         },
         {
           "type": "type_qualifier",
+          "named": true
+        },
+        {
+          "type": "uncertain_specifier",
           "named": true
         }
       ]
@@ -8632,6 +8862,16 @@
   {
     "type": "preproc_directive",
     "named": true
+  },
+  {
+    "type": "preproc_inactive_branch",
+    "named": true,
+    "extra": true
+  },
+  {
+    "type": "preproc_inline_conditional",
+    "named": true,
+    "extra": true
   },
   {
     "type": "primitive_type",
