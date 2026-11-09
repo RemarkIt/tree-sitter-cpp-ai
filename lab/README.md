@@ -1,0 +1,134 @@
+# C/C++ parser laboratory
+
+Measurement and investigation tooling for this grammar. The lab compares a
+candidate parser against pinned upstream
+[tree-sitter-cpp](https://github.com/tree-sitter/tree-sitter-cpp) at
+`c009222808634c1014f82438d4883753516a2c24`, using Clang only as an offline test
+oracle. Parsing itself never runs a compiler or preprocessor. See the
+[methodology](../docs/methodology.md) for the rules a grammar change must satisfy.
+
+## Setup
+
+Requirements: macOS (the native build recipe uses `cc -dynamiclib`), Git,
+Node/npm, Python 3.10+, and Clang with the `i686-pc-windows-msvc` frontend
+target (stock Apple/LLVM Clang works).
+
+```sh
+python3 -m venv .venv && .venv/bin/pip install -r lab/requirements.txt
+.venv/bin/python lab/bench.py prepare --upstream-source .   # upstream baseline + control candidate
+.venv/bin/python lab/cpp_dev.py init                         # generation workspace and npm dependencies
+```
+
+Everything the lab writes lives under the ignored cache `.cache/lab/`, or under
+`$CPP_LAB_CACHE` when set. `--upstream-source .` clones the pinned upstream
+commit from this repository's own history instead of the network.
+`prepare --cli /path/to/tree-sitter` reuses an installed tree-sitter 0.26.5
+binary, verified by version and hash, instead of npm's binary download.
+
+## Development loop
+
+```sh
+.venv/bin/python lab/cpp_dev.py build        # generate + compile the working tree's grammar
+.venv/bin/python lab/cpp_dev.py native       # tree-sitter corpus tests of that build
+.venv/bin/python lab/cpp_dev.py gate         # Clang-checked fixture regression gate
+.venv/bin/python lab/cpp_dev.py measure --case <id>   # focused fixture measurement
+.venv/bin/python lab/cpp_dev.py generated --write     # refresh committed src/ outputs
+```
+
+`build` copies the handwritten generation inputs (`grammar.js`,
+`src/scanner.c`, package manifests and lock, `tree-sitter.json`, queries and
+tests) into an owned workspace, so generation never writes into the checkout.
+Unchanged inputs reuse their library; each input identity gets a distinct
+library path. A new top-level `*.js` module or `src/*.[ch]` file fails until it
+is added to the recipe in `cpp_dev.py`. `generated` exits 1 when the committed
+`src/parser.c`, `src/grammar.json`, `src/node-types.json` or `src/tree_sitter/`
+headers differ from the pinned CLI's output for the current inputs.
+
+Evidence tracks stay separate:
+
+- `gate` protects every fixture the upstream baseline parses correctly plus
+  fixtures marked `required`; it cannot be filtered. Known gaps stay visible
+  without failing it.
+- `measure` reports every unresolved case and exits 0 when measurement
+  completes; it is not acceptance.
+- `bench.py compare` measures the prepared control candidate,
+  [rejected.patch](rejected.patch): an early prototype that made multiplication
+  parse as declarations. Lab tests assert the harness detects its defects.
+
+Exit codes: `0` success, `1` candidate mismatch or regression, `2` invalid
+input, compiler-oracle disagreement or tooling failure.
+
+## Fixtures
+
+[Fixtures](fixtures/) are self-contained, hand-written C/C++ sources. The
+[case manifest](fixtures/cases.json) supplies the expected declarations
+independently: name, kind, owner, return type and the exact source snippet,
+which must occur exactly once. Clang (`--target=i686-pc-windows-msvc
+-fms-extensions -nostdinc`, C++20 unless a case says otherwise) must agree with
+the expectations before parser results count. Case fields:
+
+- `symbols`: the complete compiler-checked function and variable population.
+- `raw_symbols`: optional subset excluding expansion-only declarations; it must
+  keep every source-written expectation.
+- `raw_nodes`: exact node kinds, spans and named fields.
+- `expressions`: statements that must keep their expression shape.
+- `forbid_uncertainty`: ordinary controls where no `uncertain_*`/`macro_*`
+  recovery node may appear.
+- `known_gap` / `required`: unresolved measurement versus mandatory gate case.
+- `headers`, `language`, `standard`, `compiler_flags`: compilation context.
+
+Native corpus tests live in [test/corpus](../test/corpus/). The
+`raw_*.txt` files pair each recovery shape with ordinary controls that must keep
+their upstream reading.
+
+## Corpora, census and timing
+
+```sh
+.venv/bin/python lab/corpus.py lab/corpora/heldout.json      # fetch pinned public files
+.venv/bin/python lab/census.py --manifest .cache/lab/corpora/heldout/manifest.json \
+  --candidate-library dev --output .cache/lab/heldout.json
+.venv/bin/python lab/census.py ... --timing                  # isolated timing mode
+```
+
+A corpus specification pins repositories by commit and files by path and
+SHA-256; sources are fetched on demand, never redistributed. The census reports
+error-containing files, ERROR and missing-node spans (including hidden missing
+tokens), function-definition spans, declaration deltas with ownership and
+ranges, uncertain regions and tree identities against upstream and an optional
+`--previous-library`. A lower error count is not proof of declaration recall.
+
+Timing preloads verified bytes and alternates baseline and candidate samples,
+separating parse from parse-plus-projection, plus incremental edits checked
+against fresh parses. Budgets: medians ≤1.20×, per-file p95 and incremental
+≤1.25×. Timing also counts deterministic parse work (tree-sitter
+`process version` log events) on ordinary inputs, each ≤1.25× baseline, which
+catches GLR alternatives that never merge without clock noise. Tree-sitter
+merges versions only when their external scanner states are byte-equal, so the
+scanner must serialize its default state as zero bytes. Run timing on an idle
+machine.
+
+Private corpora use the same manifest format (`files` entries with `path` and
+`current_sha256` relative to a sibling `source/` directory). Keep private
+sources, manifests and reports outside this repository.
+
+## Investigation tools
+
+`tools.py` accepts parser library paths or the aliases `upstream` and `dev`:
+
+| Command | Purpose |
+|---|---|
+| `tree LIB FILE [--lines A:B]` | Parse tree with fields and 1-based lines |
+| `diff OLD NEW FILE...` | Where two parsers' trees differ |
+| `compare OLD NEW --manifest M` | Tree identity, fixed/broken files, moved first errors, declaration deltas |
+| `reduce LIB FILE [--against LIB] [--property error\|differs]` | Delta-debug to the lines that keep a property |
+| `anonymize FILE [--keep NAME] [--library LIB]` | Rename identifiers, blank literals and comments, keep syntax |
+| `glr FILE LIB...` | GLR activity: processed versions and widest row |
+| `time OLD NEW --manifest M` | Rank files by parse-time ratio |
+
+## Limits
+
+The projection covers functions and variables (names, ownership, return types,
+spans), not types, references, callees or overloads. The Clang oracle covers
+one explicit configuration; inactive preprocessor branches are outside its
+evidence. C fixtures exercise C compatibility of this grammar, not a separate C
+grammar.

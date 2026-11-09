@@ -42,3 +42,8 @@ dist/
 # Python caches
 __pycache__/
 *.pyc
+.mypy_cache/
+.pytest_cache/
+
+# Laboratory cache
+.cache/

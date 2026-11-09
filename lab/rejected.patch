@@ -1,0 +1,140 @@
+diff --git a/grammar.js b/grammar.js
+index ffbaf0f..1db632c 100644
+--- a/grammar.js
++++ b/grammar.js
+@@ -54,6 +54,26 @@ const commaSep = C.commaSep;
+ const commaSep1 = C.commaSep1;
+ const preprocIf = C.preprocIf;
+ 
++/**
++ * Extend inherited pointer rules without copying their precedence and qualifier structure.
++ *
++ * @param {Rule} rule
++ * @param {GrammarSymbols<string>} $
++ * @returns {Rule}
++ */
++function withCallModifier(rule, $) {
++  if (rule.type === 'FIELD' && rule.name === 'declarator') {
++    return seq(optional($._call_modifier), rule);
++  }
++  if ('members' in rule) {
++    return {...rule, members: rule.members.map(member => withCallModifier(member, $))};
++  }
++  if ('content' in rule) {
++    return {...rule, content: withCallModifier(rule.content, $)};
++  }
++  return rule;
++}
++
+ module.exports = grammar(C, {
+   name: 'cpp',
+ 
+@@ -84,6 +104,15 @@ module.exports = grammar(C, {
+     [$.qualified_type_identifier, $.qualified_identifier],
+     [$.comma_expression, $.initializer_list],
+     [$.expression, $._declarator],
++    [$.expression, $.macro_call_modifier],
++    [$._declarator, $.macro_call_modifier],
++    [$._field_declarator, $.macro_call_modifier],
++    [$._type_declarator, $.macro_call_modifier],
++    [$.type_specifier, $.macro_call_modifier],
++    [$.expression, $._declarator, $.macro_call_modifier],
++    [$.type_specifier, $._declarator, $.macro_call_modifier],
++    [$.type_specifier, $.expression, $.macro_call_modifier],
++    [$.expression, $._declarator, $.type_specifier, $.macro_call_modifier],
+     [$.expression, $.structured_binding_declarator],
+     [$.expression, $._declarator, $.type_specifier],
+     [$.expression, $.identifier_parameter_pack_expansion],
+@@ -272,26 +301,35 @@ module.exports = grammar(C, {
+       alias($.qualified_type_identifier, $.qualified_identifier),
+     )),
+ 
+-    function_definition: ($, original) => ({
+-      ...original,
+-      members: original.members.map(
+-        (e) => e.name !== 'body' ?
+-          e :
+-          field('body', choice(e.content, $.try_statement))),
+-    }),
++    function_definition: ($, original) => {
++      const specifiers = original.members.findIndex(e => e.name === '_declaration_specifiers');
++      if (specifiers < 0) {
++        throw new Error('Inherited function_definition has no declaration specifiers');
++      }
++      return {
++        ...original,
++        members: original.members.map((e, index) => {
++          if (index > specifiers && e.type === 'CHOICE' &&
++              e.members.some(member => member.name === 'ms_call_modifier')) {
++            return optional($._call_modifier);
++          }
++          return e.name !== 'body' ? e : field('body', choice(e.content, $.try_statement));
++        }),
++      };
++    },
+ 
+     declaration: $ => seq(
+       $._declaration_specifiers,
+-      commaSep1(field('declarator', choice(
++      commaSep1(choice(
+         seq(
+           // C uses _declaration_declarator here for some nice macro parsing in function declarators,
+           // but this causes a world of pain for C++ so we'll just stick to the normal _declarator here.
+-          optional($.ms_call_modifier),
+-          $._declarator,
++          optional($._call_modifier),
++          field('declarator', $._declarator),
+           optional($.gnu_asm_expression),
+         ),
+-        $.init_declarator,
+-      ))),
++        field('declarator', $.init_declarator),
++      )),
+       ';',
+     ),
+ 
+@@ -305,6 +343,15 @@ module.exports = grammar(C, {
+       'virtual',
+     ),
+ 
++    // This local penalty is insufficient to prevent declaration false positives.
++    macro_call_modifier: $ => prec.dynamic(-1, $.identifier),
++
++    _call_modifier: $ => choice($.ms_call_modifier, $.macro_call_modifier),
++
++    pointer_declarator: ($, original) => withCallModifier(original, $),
++    pointer_field_declarator: ($, original) => withCallModifier(original, $),
++    pointer_type_declarator: ($, original) => withCallModifier(original, $),
++
+     explicit_function_specifier: $ => choice(
+       'explicit',
+       prec(PREC.CALL, seq(
+@@ -576,6 +623,7 @@ module.exports = grammar(C, {
+     field_declaration: $ => seq(
+       $._declaration_specifiers,
+       commaSep(seq(
++        optional($._call_modifier),
+         field('declarator', $._field_declarator),
+         optional(choice(
+           $.bitfield_clause,
+@@ -589,6 +637,7 @@ module.exports = grammar(C, {
+ 
+     inline_method_definition: $ => seq(
+       $._declaration_specifiers,
++      optional($._call_modifier),
+       field('declarator', $._field_declarator),
+       choice(
+         field('body', choice($.compound_statement, $.try_statement)),
+diff --git a/test/corpus/microsoft.txt b/test/corpus/microsoft.txt
+index 1d52ad7..a5bdace 100644
+--- a/test/corpus/microsoft.txt
++++ b/test/corpus/microsoft.txt
+@@ -33,7 +33,7 @@ int __cdecl f2();
+     body: (field_declaration_list))
+   (declaration
+     type: (primitive_type)
+-    declarator: (ms_call_modifier)
++    (ms_call_modifier)
+     declarator: (function_declarator
+       declarator: (identifier)
+       parameters: (parameter_list))))
