@@ -206,6 +206,8 @@ module.exports = grammar(C, {
     // After a function declarator's parameters: `A` in `f() A {` or `f() A(x);`, certified by a
     // token that can only end or continue a function declarator after the annotation.
     $._function_suffix_annotation,
+    // After a call expression: `B` in `A(x) B(y)`, certified by the balanced arguments after it.
+    $._juxtaposed_callee,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -277,6 +279,8 @@ module.exports = grammar(C, {
     [$.function_declarator, $._direct_initialized_reference_declarator, $.reference_declarator],
     // A macro name after a string literal may continue the concatenation.
     [$._string, $.concatenated_string],
+    // `"a" M(x)` may concatenate a macro call or call a function named by `"a" M`.
+    [$.concatenated_string, $._string_macro_call],
   ],
 
   inline: ($, original) => original.concat([
@@ -858,24 +862,26 @@ module.exports = grammar(C, {
 
     // `T* p(expr)` and `T& r(expr)`: the indirection completes before `(`, so the parentheses
     // can hold an expression. Ordinary pointer and reference declarators instead extend over
-    // `(` to declare functions returning them, and that reading wins whenever it parses.
+    // `(` to declare functions returning them, and that reading wins whenever it parses. With
+    // no dynamic precedence of its own, this reading also yields to the expression `c * d(5)`
+    // wherever the type could be an operand, keeping the inherited C reading.
     _direct_initialized_declarator: $ => choice(
       alias($._direct_initialized_pointer_declarator, $.pointer_declarator),
       alias($._direct_initialized_reference_declarator, $.reference_declarator),
     ),
 
-    _direct_initialized_pointer_declarator: $ => prec.dynamic(1, seq(
+    _direct_initialized_pointer_declarator: $ => seq(
       optional($.ms_based_modifier),
       '*',
       repeat($.ms_pointer_modifier),
       repeat($.type_qualifier),
       field('declarator', choice($._declarator, $._direct_initialized_declarator)),
-    )),
+    ),
 
-    _direct_initialized_reference_declarator: $ => prec.dynamic(1, seq(
+    _direct_initialized_reference_declarator: $ => seq(
       choice('&', '&&'),
       choice($._declarator, $._direct_initialized_declarator),
-    )),
+    ),
 
     operator_cast: $ => prec.right(1, seq(
       'operator',
@@ -1408,6 +1414,7 @@ module.exports = grammar(C, {
 
     _expression_not_binary: ($, original) => choice(
       original,
+      $.uncertain_concatenation,
       $._expression_start_probe,
       $.co_await_expression,
       $.requires_expression,
@@ -2001,14 +2008,39 @@ module.exports = grammar(C, {
     this: _ => 'this',
 
     // As in C, an unexpanded macro name may follow the first literal, e.g. `"%" PRIu64`.
+    // After a string literal, a macro call such as `STRINGIFY(N)` can only expand to more of the
+    // string, like the macro names upstream already admits here.
     concatenated_string: $ => prec.right(seq(
       choice(
         seq($.identifier, choice($.string_literal, $.raw_string_literal)),
         seq(choice($.string_literal, $.raw_string_literal), choice($.string_literal, $.raw_string_literal)),
         seq(choice($.string_literal, $.raw_string_literal), $.identifier),
+        seq(choice($.string_literal, $.raw_string_literal), $._string_macro_call),
       ),
-      repeat(choice($.identifier, $.string_literal, $.raw_string_literal)),
+      repeat(choice($.identifier, $.string_literal, $.raw_string_literal, $._string_macro_call)),
     )),
+
+    // `"a" M(x)` may also call a function named by `"a" M`, as in `operator"" _suffix(x)`; that
+    // ordinary reading wins wherever both parse.
+    _string_macro_call: $ => prec.dynamic(-1, alias(seq(
+      field('function', $.identifier),
+      field('arguments', $.argument_list),
+    ), $.call_expression)),
+
+    // Operands written next to each other without an operator, starting with a call, such as
+    // `TEXT("a") TEXT("b")` or `DEFAULT_A(x) DEFAULT_B(y)`. Only unexpanded macros juxtapose like
+    // this; whether they concatenate or select is unknown, so the region stays labeled. Every
+    // ordinary reading, such as the casts in `(A)(B)c`, wins over this one.
+    uncertain_concatenation: $ => prec.dynamic(-3, prec.right(PREC.CALL, seq(
+      $.call_expression,
+      repeat1(choice($.string_literal, $.raw_string_literal, $._juxtaposed_call)),
+    ))),
+
+    // The scanner certifies the callee only when balanced arguments follow it, and never a keyword.
+    _juxtaposed_call: $ => alias(seq(
+      field('function', alias($._juxtaposed_callee, $.identifier)),
+      field('arguments', $.argument_list),
+    ), $.call_expression),
 
     number_literal: $ => {
       const sign = /[-\+]/;

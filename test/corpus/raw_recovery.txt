@@ -724,3 +724,82 @@ class Lock {
               (number_literal)
               (number_literal))))
         (number_literal)))))
+
+==================
+Juxtaposed macro calls are labeled concatenations
+==================
+void build() {
+  message = TEXT("first part ")
+            TEXT("second part") L"!";
+  return VERSION_A("v")VERSION_B(NUMBER);
+}
+DECLARE_KEYS(
+  KEY_ONE,
+    DEFAULT_A(false)
+    DEFAULT_B(true),
+    "Describes the key")
+const char *version = "Version " VERSION_TEXT " (" STRINGIFY(NUMBER) ")";
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (uncertain_concatenation
+            (call_expression
+              (identifier)
+              (argument_list
+                (string_literal
+                  (string_content))))
+            (identifier)
+            (call_expression
+              (string_literal
+                (string_content)))
+            (string_literal
+              (string_content)))))
+      (return_statement
+        (uncertain_concatenation
+          (call_expression
+            (identifier)
+            (argument_list
+              (string_literal
+                (string_content))))
+          (identifier)
+          (call_expression
+            (identifier))))))
+  (uncertain_macro_invocation
+    (identifier)
+    (argument_list
+      (identifier)
+      (uncertain_concatenation
+        (call_expression
+          (identifier)
+          (argument_list
+            (false)))
+        (identifier)
+        (call_expression
+          (true)))
+      (string_literal
+        (string_content))))
+  (declaration
+    (type_qualifier)
+    (primitive_type)
+    (init_declarator
+      (pointer_declarator
+        (identifier))
+      (concatenated_string
+        (string_literal
+          (string_content))
+        (identifier)
+        (string_literal
+          (string_content))
+        (call_expression)
+        (call_expression
+          (identifier))
+        (string_literal
+          (string_content))))))

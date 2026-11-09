@@ -304,6 +304,12 @@
       {"name": "compute", "definition": false, "return_type": "int", "source": "int compute(int value) BLOCKING;"},
       {"name": "compute", "return_type": "int", "source": "int compute(int value) NOEXCEPT_MACRO\n{\n    int doubled = value * 2;\n    return doubled;\n}"},
       {"name": "doubled", "kind": "variable", "owner": ["compute"], "source": "int doubled = value * 2;"}
+    ]},
+    {"id": "juxtaposed-macro-calls", "family": "expression-macros", "required": true, "file": "juxtaposed_calls.cpp", "symbols": [
+      {"name": "message", "kind": "variable", "source": "const wchar_t *message = WIDE(\"first \")\n                         WIDE(\"second\") L\"!\";"},
+      {"name": "version", "kind": "variable", "source": "const char *version = \"Version \" VERSION_TEXT \" (\" STRINGIFY(VERSION_NUMBER) \")\";"},
+      {"name": "choose", "source": "int choose() {\n    return PICK_A(1) PICK_B(2);\n}"},
+      {"name": "label", "return_type": "WideText", "source": "WideText label() {\n    return WIDE(\"V \")WIDE(VERSION_TEXT);\n}"}
     ]}
   ]
 }

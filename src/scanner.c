@@ -21,6 +21,7 @@ enum TokenType {
     CLASS_ANNOTATION_CALLEE,
     CLASS_LEADING_ANNOTATION,
     FUNCTION_SUFFIX_ANNOTATION,
+    JUXTAPOSED_CALLEE,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -1067,6 +1068,13 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
     }
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
+        if (valid_symbols[JUXTAPOSED_CALLEE]) {
+            // After a call expression nothing ordinary can begin with a word, so `A(x) B(y)` juxtaposes
+            // `B(y)` once its arguments are balanced.
+            bool literal_argument = false;
+            lexer->result_symbol = JUXTAPOSED_CALLEE;
+            return skip_balanced_arguments(lexer, &literal_argument);
+        }
         if (valid_symbols[CLASS_ANNOTATION_CALLEE]) {
             lexer->result_symbol = CLASS_ANNOTATION_CALLEE;
             return class_annotation_follows(lexer);
@@ -1233,7 +1241,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
     bool identifier_tokens = valid_symbols[LEADING_ANNOTATION] || valid_symbols[DECLARATOR_ANNOTATION] ||
                              valid_symbols[MACRO_INVOCATION_CALLEE] || valid_symbols[MACRO_TYPE_CALLEE] ||
                              valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION] ||
-                             valid_symbols[FUNCTION_SUFFIX_ANNOTATION];
+                             valid_symbols[FUNCTION_SUFFIX_ANNOTATION] || valid_symbols[JUXTAPOSED_CALLEE];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {

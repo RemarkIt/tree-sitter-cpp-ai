@@ -131,3 +131,76 @@ TYPE_OF(int) other = 3;
     (init_declarator
       (identifier)
       (number_literal))))
+
+==================
+Juxtaposition controls keep casts, literal operators and calls
+==================
+void controls(void *contact) {
+  use((LPTSTR)(LPCTSTR)contact, (LPTSTR)(LPCTSTR)"text");
+  using literal = decltype(operator"" _suffix(text, 3));
+  const char *joined = "a" FORMAT_SUFFIX "b";
+  call(a)(b);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (pointer_declarator
+            (identifier)))))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (cast_expression
+              (type_descriptor
+                (type_identifier))
+              (cast_expression
+                (type_descriptor
+                  (type_identifier))
+                (identifier)))
+            (cast_expression
+              (type_descriptor
+                (type_identifier))
+              (cast_expression
+                (type_descriptor
+                  (type_identifier))
+                (string_literal
+                  (string_content)))))))
+      (alias_declaration
+        (type_identifier)
+        (type_descriptor
+          (decltype
+            (call_expression
+              (concatenated_string
+                (identifier)
+                (string_literal)
+                (identifier))
+              (argument_list
+                (identifier)
+                (number_literal))))))
+      (declaration
+        (type_qualifier)
+        (primitive_type)
+        (init_declarator
+          (pointer_declarator
+            (identifier))
+          (concatenated_string
+            (string_literal
+              (string_content))
+            (identifier)
+            (string_literal
+              (string_content)))))
+      (expression_statement
+        (call_expression
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))
+          (argument_list
+            (identifier)))))))
