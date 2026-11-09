@@ -3,9 +3,9 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tree-sitter-cpp"
-description = "C++ grammar for tree-sitter"
-version = "0.23.4"
+name = "tree-sitter-cpp-ai"
+description = "C/C++ grammar for tree-sitter with generic recovery of macro-shaped syntax (fork of tree-sitter-cpp)"
+version = "0.1.0"
 keywords = ["incremental", "parsing", "tree-sitter", "cpp"]
 classifiers = [
   "Intended Audience :: Developers",
@@ -23,7 +23,7 @@ license.text = "MIT"
 readme = "README.md"
 
 [project.urls]
-Homepage = "https://github.com/tree-sitter/tree-sitter-cpp"
+Homepage = "https://github.com/RemarkIt/tree-sitter-cpp-ai"
 
 [project.optional-dependencies]
 core = ["tree-sitter~=0.22"]

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 
-project(tree-sitter-cpp
-        VERSION "0.23.4"
-        DESCRIPTION "C++ grammar for tree-sitter"
-        HOMEPAGE_URL "https://github.com/tree-sitter/tree-sitter-cpp"
+project(tree-sitter-cpp-ai
+        VERSION "0.1.0"
+        DESCRIPTION "C/C++ grammar for tree-sitter with generic recovery of macro-shaped syntax (fork of tree-sitter-cpp)"
+        HOMEPAGE_URL "https://github.com/RemarkIt/tree-sitter-cpp-ai"
         LANGUAGES C)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
@@ -24,33 +24,33 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c"
                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                    COMMENT "Generating parser.c")
 
-add_library(tree-sitter-cpp src/parser.c)
+add_library(tree-sitter-cpp-ai src/parser.c)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/scanner.c)
-  target_sources(tree-sitter-cpp PRIVATE src/scanner.c)
+  target_sources(tree-sitter-cpp-ai PRIVATE src/scanner.c)
 endif()
-target_include_directories(tree-sitter-cpp PRIVATE src)
+target_include_directories(tree-sitter-cpp-ai PRIVATE src)
 
-target_compile_definitions(tree-sitter-cpp PRIVATE
+target_compile_definitions(tree-sitter-cpp-ai PRIVATE
                            $<$<BOOL:${TREE_SITTER_REUSE_ALLOCATOR}>:TREE_SITTER_REUSE_ALLOCATOR>
                            $<$<CONFIG:Debug>:TREE_SITTER_DEBUG>)
 
-set_target_properties(tree-sitter-cpp
+set_target_properties(tree-sitter-cpp-ai
                       PROPERTIES
                       C_STANDARD 11
                       POSITION_INDEPENDENT_CODE ON
                       SOVERSION "${TREE_SITTER_ABI_VERSION}.${PROJECT_VERSION_MAJOR}"
                       DEFINE_SYMBOL "")
 
-configure_file(bindings/c/tree-sitter-cpp.pc.in
-               "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-cpp.pc" @ONLY)
+configure_file(bindings/c/tree-sitter-cpp-ai.pc.in
+               "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-cpp-ai.pc" @ONLY)
 
 include(GNUInstallDirs)
 
-install(FILES bindings/c/tree-sitter-cpp.h
+install(FILES bindings/c/tree-sitter-cpp-ai.h
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/tree_sitter")
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-cpp.pc"
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/tree-sitter-cpp-ai.pc"
         DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig")
-install(TARGETS tree-sitter-cpp
+install(TARGETS tree-sitter-cpp-ai
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
 add_custom_target(ts-test "${TREE_SITTER_CLI}" test

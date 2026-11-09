@@ -81,8 +81,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "tree-sitter-cpp"
-version = "0.23.4"
+name = "tree-sitter-cpp-ai"
+version = "0.1.0"
 dependencies = [
  "cc",
  "tree-sitter",

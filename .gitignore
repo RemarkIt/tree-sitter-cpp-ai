@@ -38,3 +38,7 @@ dist/
 *.tar.gz
 *.tgz
 *.zip
+
+# Python caches
+__pycache__/
+*.pyc

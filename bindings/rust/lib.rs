@@ -12,7 +12,7 @@
 //! }
 //! "#;
 //! let mut parser = tree_sitter::Parser::new();
-//! let language = tree_sitter_cpp::LANGUAGE;
+//! let language = tree_sitter_cpp_ai::LANGUAGE;
 //! parser
 //!     .set_language(&language.into())
 //!     .expect("Error loading C++ parser");

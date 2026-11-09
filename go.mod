@@ -1,4 +1,4 @@
-module github.com/tree-sitter/tree-sitter-cpp
+module github.com/RemarkIt/tree-sitter-cpp-ai
 
 go 1.22
 
