@@ -130,7 +130,8 @@ def prepare(cache: Path, source: str, patch: Path, cli_binary: Path | None = Non
             checkout, directory / "dependencies.log", timeout=900)
         cli = cli_binary or checkout / "node_modules" / "tree-sitter-cli" / "tree-sitter"
         run([str(cli), "generate"], checkout, directory / "generate.log", timeout=900)
-        run(["cc", "-dynamiclib", "-I", "src", "src/parser.c", "src/scanner.c", "-o", str(library)],
+        # Optimize like packaged builds (the Python extension builds with -O2), so timing reflects real use.
+        run(["cc", "-dynamiclib", "-O2", "-I", "src", "src/parser.c", "src/scanner.c", "-o", str(library)],
             checkout, directory / "compile.log", timeout=300)
         saved = {
             "key": key, "revision": REVISION, "patch_sha256": patch_hash,

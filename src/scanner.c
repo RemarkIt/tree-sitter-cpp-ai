@@ -19,6 +19,8 @@ enum TokenType {
     PREPROC_IF_PROBE,
     PREPROC_END_OF_INPUT,
     CLASS_ANNOTATION_CALLEE,
+    IDENTIFIER,
+    LITERAL_SUFFIX,
 };
 
 /// The spec limits delimiters to 16 chars
@@ -45,15 +47,26 @@ typedef struct {
     char text[MAX_WORD_LENGTH + 1];
     uint8_t length;
     bool truncated;
+    bool non_ascii;
 } Word;
 
-static inline bool is_identifier_start(int32_t c) { return iswalpha(c) || c == '_' || c == '$' || c > 0x7f; }
+// Classify ASCII inline and consult <wctype.h> only beyond ASCII, keeping the common case cheap.
+static inline bool is_ascii_letter(int32_t c) { return (uint32_t)((c | 0x20) - 'a') < 26; }
 
-static inline bool is_identifier_part(int32_t c) { return iswalnum(c) || c == '_' || c == '$' || c > 0x7f; }
+static inline bool is_digit(int32_t c) { return (c >= '0' && c <= '9') || (c > 0x7f && iswdigit(c)); }
+
+static inline bool is_space(int32_t c) { return c == ' ' || (c >= '\t' && c <= '\r') || (c > 0x7f && iswspace(c)); }
+
+static inline bool is_identifier_start(int32_t c) { return is_ascii_letter(c) || c == '_' || c == '$' || c > 0x7f; }
+
+static inline bool is_identifier_part(int32_t c) {
+    return is_ascii_letter(c) || (c >= '0' && c <= '9') || c == '_' || c == '$' || c > 0x7f;
+}
 
 static bool read_word(TSLexer *lexer, Word *word) {
     word->length = 0;
     word->truncated = false;
+    word->non_ascii = false;
     if (!is_identifier_start(lexer->lookahead)) {
         return false;
     }
@@ -62,6 +75,7 @@ static bool read_word(TSLexer *lexer, Word *word) {
             word->text[word->length++] = (char)lexer->lookahead;
         } else {
             word->truncated = true;
+            word->non_ascii = word->non_ascii || lexer->lookahead > 0x7f;
         }
         advance(lexer);
     }
@@ -69,17 +83,34 @@ static bool read_word(TSLexer *lexer, Word *word) {
     return true;
 }
 
-static bool word_in(const Word *word, const char *const *list) {
+/// Binary search of a word list, which must be strictly ASCII-sorted (lab tests check this).
+static bool word_in_sorted(const Word *word, const char *const *list, size_t count) {
     if (word->truncated) {
         return false;
     }
-    for (const char *const *item = list; *item; ++item) {
-        if ((*item)[0] == word->text[0] && strcmp(word->text, *item) == 0) {
+    size_t low = 0;
+    size_t high = count;
+    while (low < high) {
+        size_t middle = low + (high - low) / 2;
+        // Most probes differ in their first character, which decides them without a call.
+        int order = (unsigned char)word->text[0] - (unsigned char)list[middle][0];
+        if (order == 0) {
+            order = strcmp(word->text, list[middle]);
+        }
+        if (order == 0) {
             return true;
+        }
+        if (order < 0) {
+            high = middle;
+        } else {
+            low = middle + 1;
         }
     }
     return false;
 }
+
+/// Word lists are NULL-terminated arrays, so their length is known at each call site.
+#define word_in(word, list) word_in_sorted((word), (list), sizeof(list) / sizeof(*(list)) - 1)
 
 /// Every identifier-shaped literal token of the grammar. Keywords are never annotations.
 static const char *const KEYWORDS[] = {
@@ -171,7 +202,7 @@ static bool leading_annotation_follows(TSLexer *lexer) {
 /// After `A` (already consumed): the next token continues the declarator, i.e. another
 /// identifier, `*` or `&`. A declarator name is never followed by these tokens.
 static bool declarator_annotation_follows(TSLexer *lexer) {
-    while (iswspace(lexer->lookahead)) {
+    while (is_space(lexer->lookahead)) {
         advance(lexer);
     }
     if (lexer->lookahead == '*' || lexer->lookahead == '&') {
@@ -253,7 +284,7 @@ static bool skip_raw_string(TSLexer *lexer) {
     advance(lexer);
     while (lexer->lookahead != '(') {
         if (length >= MAX_DELIMITER_LENGTH || lexer->eof(lexer) || lexer->lookahead == '\\' ||
-            lexer->lookahead == ')' || iswspace(lexer->lookahead)) {
+            lexer->lookahead == ')' || is_space(lexer->lookahead)) {
             return false;
         }
         delimiter[length++] = lexer->lookahead;
@@ -308,7 +339,7 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
                 return c == ')';
             }
             argument_start = false;
-        } else if (iswspace(c)) {
+        } else if (is_space(c)) {
             advance(lexer);
         } else if (c == ',') {
             advance(lexer);
@@ -325,7 +356,7 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
                 return false;
             }
             argument_start = false;
-        } else if (iswdigit(c)) {
+        } else if (is_digit(c)) {
             *literal_argument = *literal_argument || argument_start;
             int32_t previous = 0;
             while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'' ||
@@ -365,7 +396,7 @@ static bool skip_trivia(TSLexer *lexer, bool *newline) {
         if (c == '\n') {
             *newline = true;
             advance(lexer);
-        } else if (iswspace(c)) {
+        } else if (is_space(c)) {
             advance(lexer);
         } else if (c == '/') {
             advance(lexer);
@@ -491,7 +522,7 @@ static bool keyword_declaration_follows(TSLexer *lexer, Word *word, bool *specif
             return false;
         }
         after_specifier = true;
-        while (iswspace(lexer->lookahead)) {
+        while (is_space(lexer->lookahead)) {
             advance(lexer);
         }
         if (!read_word(lexer, word)) {
@@ -530,7 +561,7 @@ static bool skip_balanced_block(TSLexer *lexer) {
             if (lexer->lookahead == '"' && is_raw_prefix(&word) && !skip_raw_string(lexer)) {
                 return false;
             }
-        } else if (iswdigit(c)) {
+        } else if (is_digit(c)) {
             while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'') {
                 advance(lexer);
             }
@@ -740,7 +771,7 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             advance(lexer);
             continue;
         }
-        if (iswspace(c) || c == '\\') {
+        if (is_space(c) || c == '\\') {
             advance(lexer);
             continue;
         }
@@ -806,7 +837,7 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             advance(lexer);
         } else if (c == '"' || c == '\'') {
             skip_quoted(lexer);
-        } else if (iswdigit(c)) {
+        } else if (is_digit(c)) {
             int32_t previous = 0;
             while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'' ||
                    ((lexer->lookahead == '+' || lexer->lookahead == '-') &&
@@ -879,13 +910,8 @@ static bool scan_preproc_conditional(Scanner *scanner, TSLexer *lexer, const boo
     return true;
 }
 
-/// One identifier read serves every identifier-based token, because a scan cannot rewind.
-static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, bool newline_before) {
-    Word word;
-    if (!read_word(lexer, &word) || word_in(&word, KEYWORDS)) {
-        return false;
-    }
-    lexer->mark_end(lexer);
+/// Certify the identifier just read, whose end is marked, as an annotation or macro token.
+static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols, bool newline_before) {
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
         if (valid_symbols[CLASS_ANNOTATION_CALLEE]) {
@@ -927,6 +953,29 @@ static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, boo
     return false;
 }
 
+/// One identifier read serves every identifier-based token, because a scan cannot rewind. Where an
+/// identifier is valid, a word that is no certified token is returned as that identifier rather
+/// than read again by the lexer. Only words an ordinary identifier would end at qualify: ASCII,
+/// not a keyword, and not the prefix of a literal or of a universal character name.
+static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, bool newline_before, bool certify,
+                                  bool identifier) {
+    Word word;
+    if (!read_word(lexer, &word) || word_in(&word, KEYWORDS)) {
+        return false;
+    }
+    int32_t next = lexer->lookahead;
+    bool plain = identifier && !word.non_ascii && next != '"' && next != '\'' && next != '\\';
+    lexer->mark_end(lexer);
+    if (certify && scan_certified_identifier(lexer, valid_symbols, newline_before)) {
+        return true;
+    }
+    if (plain) {
+        lexer->result_symbol = IDENTIFIER;
+        return true;
+    }
+    return false;
+}
+
 /// Scan the raw string delimiter in R"delimiter(content)delimiter"
 static bool scan_raw_string_delimiter(Scanner *scanner, TSLexer *lexer) {
     if (scanner->delimiter_length > 0) {
@@ -947,7 +996,7 @@ static bool scan_raw_string_delimiter(Scanner *scanner, TSLexer *lexer) {
     // d-char is any basic character except parens, backslashes, and spaces.
     for (;;) {
         if (scanner->delimiter_length >= MAX_DELIMITER_LENGTH || lexer->eof(lexer) || lexer->lookahead == '\\' ||
-            iswspace(lexer->lookahead)) {
+            is_space(lexer->lookahead)) {
             return false;
         }
         if (lexer->lookahead == '(') {
@@ -1039,10 +1088,11 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
         return true;
     }
     bool conditional_tokens = valid_symbols[PREPROC_INLINE_CONDITIONAL];
-    if (!identifier_tokens && !conditional_tokens) {
+    if (!identifier_tokens && !conditional_tokens && !valid_symbols[IDENTIFIER]) {
         return false;
     }
     bool newline_before = false;
+    bool space_before = false;
     for (;;) {
         if (lexer->lookahead == '\n' || lexer->lookahead == '\r') {
             newline_before = true;
@@ -1055,15 +1105,21 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
             if (lexer->lookahead != '\n') {
                 return false;
             }
-        } else if (!iswspace(lexer->lookahead)) {
+        } else if (!is_space(lexer->lookahead)) {
             break;
         }
+        space_before = true;
         lexer->advance(lexer, true);
     }
     if (lexer->lookahead == '#') {
         return conditional_tokens && scan_preproc_conditional(scanner, lexer, valid_symbols);
     }
-    return identifier_tokens && scan_identifier_token(lexer, valid_symbols, newline_before);
+    // A literal suffix is immediate, so after a space only an identifier can match the word.
+    bool identifier = valid_symbols[IDENTIFIER] && (space_before || !valid_symbols[LITERAL_SUFFIX]);
+    if (!identifier_tokens && !identifier) {
+        return false;
+    }
+    return scan_identifier_token(lexer, valid_symbols, newline_before, identifier_tokens, identifier);
 }
 
 unsigned tree_sitter_cpp_external_scanner_serialize(void *payload, char *buffer) {

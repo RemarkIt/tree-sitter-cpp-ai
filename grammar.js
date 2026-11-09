@@ -200,6 +200,10 @@ module.exports = grammar(C, {
     $._preproc_end_of_input,
     // After a class key: `A` in `class A(...) Name`, certified by the name after the arguments.
     $._class_annotation_callee,
+    // Returned for words the scanner has already read, so they are not lexed twice.
+    $.identifier,
+    // Never produced: its validity marks where a word could instead be a literal suffix.
+    $.literal_suffix,
   ],
 
   extras: ($, original) => original.concat([

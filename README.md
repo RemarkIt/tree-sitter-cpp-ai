@@ -41,16 +41,23 @@ change was developed against this sample.
 | | upstream | this fork |
 |---|---:|---:|
 | Files with parse errors | 490 (51.4%) | 209 (21.9%) |
-| ERROR nodes | 7,958 | 2,084 |
-| Bytes inside ERROR regions | 1,133,588 | 480,620 |
+| ERROR nodes | 7,958 | 2,035 |
+| Bytes inside ERROR regions | 1,133,588 | 478,723 |
 | Error-free files that start failing | | 0 |
 
-Speed on the same sample, relative to upstream (the lab's budgets are ≤1.20×
-for totals and ≤1.25× for p95 and incremental):
+Parse time on the same sample relative to upstream, as per-thread CPU time
+with both parsers compiled at `-O2`:
 
-| total parse | parse + declaration projection | per-file p95 | incremental reparse |
+| clean in both (464 files) | fixed by this fork (281) | errors in both (209) | all (954) |
 |---:|---:|---:|---:|
-| 1.15× | 1.07× | 1.10× | 1.03× |
+| 1.07× | 0.92× | 0.97× | 0.97× |
+
+The scanner returns the identifiers it reads, so the generated lexer does not
+read them again; error recovery that the fork avoids is the other saving. Per-file
+p95 is 0.88× and incremental reparsing 1.02× (the lab's budgets are ≤1.20× for
+totals and ≤1.25× for p95 and incremental). The price is tree memory: holding all
+954 trees takes about 18% more than upstream, because tree-sitter stores tokens
+from an external scanner as full nodes.
 
 ## Usage
 

@@ -20467,6 +20467,14 @@
     {
       "type": "SYMBOL",
       "name": "_class_annotation_callee"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "identifier"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "literal_suffix"
     }
   ],
   "inline": [

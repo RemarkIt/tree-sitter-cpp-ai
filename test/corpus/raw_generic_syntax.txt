@@ -347,3 +347,69 @@ const char* format = "value: %" PRIu64 " units" UNIT_SUFFIX;
         (string_literal
           (string_content))
         (identifier)))))
+
+==================
+Identifiers beside literal prefixes, suffixes and universal characters
+==================
+auto a = "x"_s + 1.5_km + u8"y" + L'z' + LR"(r)" + "x" PRIu64 "y";
+auto b = "x" _s;
+int naïve = ab\u00e9cd + $id + a_very_long_identifier_name_beyond_limit;
+unsigned long long operator""_km(unsigned long long n);
+---
+(translation_unit
+  (declaration
+    (placeholder_type_specifier
+      (auto))
+    (init_declarator
+      (identifier)
+      (binary_expression
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (binary_expression
+                (user_defined_literal
+                  (string_literal
+                    (string_content))
+                  (literal_suffix))
+                (user_defined_literal
+                  (number_literal)
+                  (literal_suffix)))
+              (string_literal
+                (string_content)))
+            (char_literal
+              (character)))
+          (raw_string_literal
+            (raw_string_content)))
+        (concatenated_string
+          (string_literal
+            (string_content))
+          (identifier)
+          (string_literal
+            (string_content))))))
+  (declaration
+    (placeholder_type_specifier
+      (auto))
+    (init_declarator
+      (identifier)
+      (concatenated_string
+        (string_literal
+          (string_content))
+        (identifier))))
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (binary_expression
+        (binary_expression
+          (identifier)
+          (identifier))
+        (identifier))))
+  (declaration
+    (sized_type_specifier)
+    (function_declarator
+      (operator_name
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (sized_type_specifier)
+          (identifier))))))

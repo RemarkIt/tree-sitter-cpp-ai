@@ -108,8 +108,11 @@ their upstream reading.
   and `test_syntax_census.py` cover manifest hashes and fixed denominators,
   declaration multiplicity and range deltas, timing aggregation with controlled
   clocks, parse-work budgets and incremental/fresh agreement; `test_tools.py`
-  covers the investigation tools. Acceptance timing uses real native parsing and
-  excludes compiler, setup and I/O costs.
+  covers the investigation tools; `test_scanner_words.py` keeps the scanner's
+  word lists sorted for binary search and its `KEYWORDS` equal to the grammar's
+  identifier-shaped literals, because the scanner returns every other word as an
+  identifier. Acceptance timing uses real native parsing and excludes compiler,
+  setup and I/O costs.
 
 ## Corpora, census and timing
 
@@ -129,13 +132,14 @@ ranges, uncertain regions and tree identities against upstream and an optional
 
 Timing preloads verified bytes and alternates baseline and candidate samples,
 separating parse from parse-plus-projection, plus incremental edits checked
-against fresh parses. Budgets: medians ≤1.20×, per-file p95 and incremental
-≤1.25×. Timing also counts deterministic parse work (tree-sitter
-`process version` log events) on ordinary inputs, each ≤1.25× baseline, which
-catches GLR alternatives that never merge without clock noise. Tree-sitter
-merges versions only when their external scanner states are byte-equal, so the
-scanner must serialize its default state as zero bytes. Run timing on an idle
-machine.
+against fresh parses. It measures per-thread CPU time, which other processes
+barely disturb, and libraries are compiled with `-O2` like packaged builds.
+Budgets: medians ≤1.20×, per-file p95 and incremental ≤1.25×. Timing also
+counts deterministic parse work (tree-sitter `process version` log events) on
+ordinary inputs, each ≤1.25× baseline, which catches GLR alternatives that never
+merge without clock noise. Tree-sitter merges versions only when their external
+scanner states are byte-equal, so the scanner must serialize its default state
+as zero bytes. An idle machine still gives the most stable cache behaviour.
 
 Private corpora use the same manifest format (`files` entries with `path` and
 `current_sha256` relative to a sibling `source/` directory). Keep private

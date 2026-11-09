@@ -390,7 +390,8 @@ def timing_summary(samples: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
 def timing(
     cache: Path, manifest_path: Path, output: Path, candidate_library: Path | None = None,
     previous_library: Path | None = None, expected_files: int | None = None,
-    clock: Any = time.perf_counter_ns,
+    # Per-thread CPU time: other processes on a busy host barely disturb it, unlike wall-clock time.
+    clock: Any = time.thread_time_ns,
 ) -> dict[str, Any]:
     sources = manifest_files(manifest_path, expected_files)
     lanes = build.builds(cache)
@@ -466,7 +467,7 @@ def timing(
         "libraries": {name: {"path": str(path), "sha256": build.digest(path), "bytes": path.stat().st_size}
                       for name, path in libraries.items()},
         "inputs": [{"path": path, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()} for path, data in sources],
-        "protocol": {"warmups": 2, "samples": 5, "orders": orders,
+        "protocol": {"clock": getattr(clock, "__name__", repr(clock)), "warmups": 2, "samples": 5, "orders": orders,
                      "incremental_repetitions": 20,
                      "parse_work": "tree-sitter 'process version' log events per independent case",
                      "excludes": ["source I/O", "Clang", "generation/compilation", "report serialization", "Tree.edit setup"]},

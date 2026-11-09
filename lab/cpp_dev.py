@@ -158,7 +158,8 @@ def compile_editable(cache: Path, checkout: Path) -> dict[str, Any]:
         build.write_json(cache / "dev" / "build.json", saved)
         return saved | {"cached": True}
     build.run([setup["cli"], "generate"], workspace, directory / "generate.log", timeout=900)
-    build.run(["cc", "-dynamiclib", "-I", "src", "src/parser.c", "src/scanner.c", "-o", str(library)],
+    # Optimize like packaged builds (the Python extension builds with -O2), so timing reflects real use.
+    build.run(["cc", "-dynamiclib", "-O2", "-I", "src", "src/parser.c", "src/scanner.c", "-o", str(library)],
               workspace, directory / "compile.log", timeout=300)
     saved = {
         "origin": "editable", "key": key, "checkout": str(checkout), "revision": build.REVISION,
