@@ -2590,6 +2590,15 @@
                     {
                       "type": "SYMBOL",
                       "name": "string_literal"
+                    },
+                    {
+                      "type": "ALIAS",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "_preproc_raw_argument"
+                      },
+                      "named": true,
+                      "value": "preproc_arg"
                     }
                   ]
                 },
@@ -2616,6 +2625,15 @@
                           {
                             "type": "SYMBOL",
                             "name": "string_literal"
+                          },
+                          {
+                            "type": "ALIAS",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "_preproc_raw_argument"
+                            },
+                            "named": true,
+                            "value": "preproc_arg"
                           }
                         ]
                       }
@@ -7118,34 +7136,46 @@
       ]
     },
     "labeled_statement": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "FIELD",
-          "name": "label",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_statement_identifier"
-          }
-        },
-        {
-          "type": "STRING",
-          "value": ":"
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "label",
+            "content": {
               "type": "SYMBOL",
-              "name": "declaration"
-            },
-            {
-              "type": "SYMBOL",
-              "name": "statement"
+              "name": "_statement_identifier"
             }
-          ]
-        }
-      ]
+          },
+          {
+            "type": "STRING",
+            "value": ":"
+          },
+          {
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "declaration"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "statement"
+                  }
+                ]
+              },
+              {
+                "type": "BLANK"
+              }
+            ]
+          }
+        ]
+      }
     },
     "_top_level_expression_statement": {
       "type": "SEQ",
@@ -20694,6 +20724,10 @@
     {
       "type": "SYMBOL",
       "name": "_juxtaposed_callee"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_preproc_raw_argument"
     },
     {
       "type": "SYMBOL",

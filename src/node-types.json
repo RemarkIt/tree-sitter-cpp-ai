@@ -843,6 +843,10 @@
           "named": true
         },
         {
+          "type": "preproc_arg",
+          "named": true
+        },
+        {
           "type": "preproc_defined",
           "named": true
         },
@@ -4326,7 +4330,7 @@
     },
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "declaration",

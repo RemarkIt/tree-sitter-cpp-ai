@@ -204,3 +204,83 @@ void controls(void *contact) {
               (identifier)))
           (argument_list
             (identifier)))))))
+
+==================
+Conditional expression and label controls
+==================
+#if defined(A) && HAS_FEATURE(B, 2) || (C > 1)
+#define ON 1
+#endif
+#if __has_include(<config.h>) && __has_include("local.h")
+#define LOCAL 1
+#endif
+int pick(int value) {
+  return value ? 1 : 0;
+}
+void step(int value) {
+start:
+  (void)value;
+}
+---
+(translation_unit
+  (preproc_if
+    (binary_expression
+      (binary_expression
+        (preproc_defined
+          (identifier))
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (number_literal))))
+      (parenthesized_expression
+        (binary_expression
+          (identifier)
+          (number_literal))))
+    (preproc_def
+      (identifier)
+      (preproc_arg)))
+  (preproc_if
+    (binary_expression
+      (call_expression
+        (identifier)
+        (argument_list
+          (system_lib_string)))
+      (call_expression
+        (identifier)
+        (argument_list
+          (string_literal
+            (string_content)))))
+    (preproc_def
+      (identifier)
+      (preproc_arg)))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (return_statement
+        (conditional_expression
+          (identifier)
+          (number_literal)
+          (number_literal)))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (labeled_statement
+        (statement_identifier)
+        (expression_statement
+          (cast_expression
+            (type_descriptor
+              (primitive_type))
+            (identifier)))))))

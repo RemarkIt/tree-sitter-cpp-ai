@@ -310,6 +310,11 @@
       {"name": "version", "kind": "variable", "source": "const char *version = \"Version \" VERSION_TEXT \" (\" STRINGIFY(VERSION_NUMBER) \")\";"},
       {"name": "choose", "source": "int choose() {\n    return PICK_A(1) PICK_B(2);\n}"},
       {"name": "label", "return_type": "WideText", "source": "WideText label() {\n    return WIDE(\"V \")WIDE(VERSION_TEXT);\n}"}
+    ]},
+    {"id": "conditional-labels-and-arguments", "family": "conditional", "required": true, "file": "conditional_labels.cpp", "standard": "c++23", "symbols": [
+      {"name": "feature_level", "kind": "variable", "source": "int feature_level = 1;"},
+      {"name": "run", "source": "int run(int value) {\n    if (value < 0)\n        goto done;\n    value++;\n#if defined(TRACE_EXIT)\ndone:\n#endif\n    return value;\n}"},
+      {"name": "finish", "return_type": "void", "source": "void finish(int value) {\n    if (value)\n        goto end;\n    value = 0;\nend:\n}"}
     ]}
   ]
 }

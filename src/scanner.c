@@ -22,6 +22,7 @@ enum TokenType {
     CLASS_LEADING_ANNOTATION,
     FUNCTION_SUFFIX_ANNOTATION,
     JUXTAPOSED_CALLEE,
+    PREPROC_RAW_ARGUMENT,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -1060,6 +1061,81 @@ static bool function_suffix_follows(TSLexer *lexer) {
     return false;
 }
 
+/// At the start of a conditional directive's macro argument: consume the argument through its
+/// end, a `,` or `)` at its own depth on the logical line, and certify it only when it holds a
+/// character that no preprocessor expression can, such as the `?` of `F(?)` or the `::` of
+/// `__has_cpp_attribute(gnu::cold)`. Other arguments stay ordinary expressions.
+static bool scan_preproc_raw_argument(TSLexer *lexer) {
+    while (is_horizontal_space(lexer->lookahead)) {
+        lexer->advance(lexer, true);
+    }
+    // `__has_include(<header>)` keeps its header name.
+    if (lexer->lookahead == '<') {
+        return false;
+    }
+    unsigned depth = 0;
+    bool opaque = false;
+    bool empty = true;
+    for (unsigned budget = MAX_INVOCATION_SCAN; budget > 0; --budget) {
+        int32_t c = lexer->lookahead;
+        if (lexer->eof(lexer) || c == '\n') {
+            return false;
+        }
+        if (depth == 0 && (c == ',' || c == ')')) {
+            return opaque && !empty;
+        }
+        if (c == '\\') {
+            advance(lexer);
+            if (lexer->lookahead == '\r') {
+                advance(lexer);
+            }
+            if (lexer->lookahead != '\n') {
+                return false;
+            }
+            advance(lexer);
+            continue;
+        }
+        if (c == '"' || c == '\'') {
+            if (!skip_quoted(lexer)) {
+                return false;
+            }
+        } else if (c == '/') {
+            bool newline = false;
+            advance(lexer);
+            if (skip_comment_after_slash(lexer, &newline)) {
+                if (newline) {
+                    return false;
+                }
+                continue;
+            }
+            empty = false;
+            lexer->mark_end(lexer);
+            continue;
+        } else {
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+            } else if (c == '=') {
+                advance(lexer);
+                opaque = opaque || lexer->lookahead != '=';
+                empty = false;
+                lexer->mark_end(lexer);
+                continue;
+            } else if (c == '?' || c == ':' || c == '.' || c == '[' || c == ']' || c == '{' || c == '}' || c == ';' ||
+                       c == '@' || c == '$' || c == '#' || c == '`') {
+                opaque = true;
+            }
+            advance(lexer);
+        }
+        if (!is_space(c)) {
+            empty = false;
+            lexer->mark_end(lexer);
+        }
+    }
+    return false;
+}
+
 /// Certify the identifier just read, whose end is marked, as an annotation or macro token.
 static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols, bool newline_before) {
     if (valid_symbols[FUNCTION_SUFFIX_ANNOTATION]) {
@@ -1236,6 +1312,11 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
     if (valid_symbols[RAW_STRING_CONTENT]) {
         lexer->result_symbol = RAW_STRING_CONTENT;
         return scan_raw_string_content(scanner, lexer);
+    }
+
+    if (valid_symbols[PREPROC_RAW_ARGUMENT]) {
+        lexer->result_symbol = PREPROC_RAW_ARGUMENT;
+        return scan_preproc_raw_argument(lexer);
     }
 
     bool identifier_tokens = valid_symbols[LEADING_ANNOTATION] || valid_symbols[DECLARATOR_ANNOTATION] ||

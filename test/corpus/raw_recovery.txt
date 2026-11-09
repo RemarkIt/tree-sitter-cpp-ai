@@ -803,3 +803,87 @@ const char *version = "Version " VERSION_TEXT " (" STRINGIFY(NUMBER) ")";
           (identifier))
         (string_literal
           (string_content))))))
+
+==================
+Labels ending conditional groups and blocks, opaque conditional macro arguments
+==================
+int run(int value) {
+  if (value < 0)
+    goto done;
+  value++;
+#if defined(TRACE_EXIT)
+done:
+#endif
+  return value;
+}
+void finish(void) {
+  cleanup();
+end:
+}
+#if HAS_FEATURE(?)
+#define FEATURE_ON 1
+#elif !HAS_ATTRIBUTE(gnu::cold) && defined(OTHER)
+#define FEATURE_ON 2
+#endif
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (if_statement
+        (condition_clause
+          (binary_expression
+            (identifier)
+            (number_literal)))
+        (goto_statement
+          (statement_identifier)))
+      (expression_statement
+        (update_expression
+          (identifier)))
+      (preproc_if
+        (preproc_defined
+          (identifier))
+        (labeled_statement
+          (statement_identifier)))
+      (return_statement
+        (identifier))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type))))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list)))
+      (labeled_statement
+        (statement_identifier))))
+  (preproc_if
+    (call_expression
+      (identifier)
+      (argument_list
+        (preproc_arg)))
+    (preproc_def
+      (identifier)
+      (preproc_arg))
+    (preproc_elif
+      (binary_expression
+        (unary_expression
+          (call_expression
+            (identifier)
+            (argument_list
+              (preproc_arg))))
+        (preproc_defined
+          (identifier)))
+      (preproc_def
+        (identifier)
+        (preproc_arg)))))

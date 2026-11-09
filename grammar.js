@@ -208,6 +208,8 @@ module.exports = grammar(C, {
     $._function_suffix_annotation,
     // After a call expression: `B` in `A(x) B(y)`, certified by the balanced arguments after it.
     $._juxtaposed_callee,
+    // A conditional directive's macro argument holding tokens no expression can, as in `F(?)`.
+    $._preproc_raw_argument,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -356,10 +358,25 @@ module.exports = grammar(C, {
     ...probedPreprocIf('_in_enumerator_list_no_comma', $ => $.enumerator, -1),
 
     preproc_include: ($, original) => withInputEndLine($, original),
-    // `__has_include(<header>)` and `__has_include("header")` take a header name.
+
+    // C23 and C++23 allow a label at the end of a compound statement, as in `done: }`; a
+    // conditional group may likewise end with one.
+    labeled_statement: $ => prec.right(seq(
+      field('label', $._statement_identifier),
+      ':',
+      optional(choice($.declaration, $.statement)),
+    )),
+    // `__has_include(<header>)` and `__has_include("header")` take a header name. Before
+    // expansion a macro argument is any balanced token sequence, as in `F(?)` or
+    // `__has_cpp_attribute(gnu::cold)`; the scanner keeps one that no expression can hold opaque.
     preproc_argument_list: $ => seq(
       '(',
-      commaSep(choice($._preproc_expression, $.system_lib_string, $.string_literal)),
+      commaSep(choice(
+        $._preproc_expression,
+        $.system_lib_string,
+        $.string_literal,
+        alias($._preproc_raw_argument, $.preproc_arg),
+      )),
       ')',
     ),
     preproc_defined: $ => choice(
