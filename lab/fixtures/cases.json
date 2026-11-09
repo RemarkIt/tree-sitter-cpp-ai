@@ -1,0 +1,298 @@
+{
+  "cases": [
+    {"id": "annotation-definition", "family": "annotation", "file": "annotation_definition.cpp", "symbols": [
+      {"name": "callback", "source": "int WINAPI callback(int value) { return value; }"}
+    ]},
+    {"id": "annotation-alias", "family": "annotation", "file": "annotation_alias.cpp", "symbols": [
+      {"name": "invoke", "return_type": "Result", "source": "Result API_CALL invoke() { return 1; }"}
+    ]},
+    {"id": "annotation-pointer", "family": "annotation", "file": "annotation_pointer.cpp", "symbols": [
+      {"name": "get_pointer", "return_type": "int *", "source": "int * WINAPI get_pointer() { return nullptr; }"}
+    ]},
+    {"id": "annotation-namespace", "family": "annotation", "file": "annotation_namespace.cpp", "symbols": [
+      {"name": "invoke", "owner": ["N"], "source": "int WINAPI invoke() { return 1; }"}
+    ]},
+    {"id": "annotation-method", "family": "annotation", "file": "annotation_method.cpp", "symbols": [
+      {"name": "invoke", "owner": ["Widget"], "source": "int API_CALL invoke() { return 1; }"}
+    ]},
+    {"id": "annotation-prototype", "family": "annotation", "file": "annotation_prototype.cpp", "symbols": [
+      {"name": "callback", "definition": false, "source": "int WINAPI callback(int);"}
+    ]},
+    {"id": "annotation-alias-prototype", "family": "annotation", "file": "annotation_alias_prototype.cpp", "symbols": [
+      {"name": "invoke", "definition": false, "return_type": "Result", "source": "Result API_CALL invoke();"}
+    ]},
+    {"id": "annotation-pointer-prototype", "family": "annotation", "file": "annotation_pointer_prototype.cpp", "symbols": [
+      {"name": "get_pointer", "definition": false, "return_type": "int *", "source": "int * WINAPI get_pointer();"}
+    ]},
+    {"id": "ordinary-name", "family": "declarations", "file": "ordinary_name.cpp", "symbols": [
+      {"name": "WINAPI", "source": "int WINAPI() { return 1; }"}
+    ]},
+    {"id": "ordinary-alias", "family": "declarations", "file": "ordinary_alias.cpp", "symbols": [
+      {"name": "invoke", "return_type": "WINAPI", "source": "WINAPI invoke() { return 1; }"}
+    ]},
+    {"id": "ordinary-pointer", "family": "declarations", "file": "ordinary_pointer.cpp", "symbols": [
+      {"name": "get_pointer", "return_type": "int *", "source": "int * get_pointer() { return nullptr; }"}
+    ]},
+    {"id": "ordinary-method", "family": "declarations", "file": "ordinary_method.cpp", "symbols": [
+      {"name": "invoke", "owner": ["N", "Widget"], "source": "int invoke() { return 1; }"}
+    ]},
+    {"id": "ordinary-convention", "family": "declarations", "file": "ordinary_convention.cpp", "symbols": [
+      {"name": "invoke", "source": "int __stdcall invoke() { return 1; }"}
+    ]},
+    {"id": "variable-name", "family": "declarations", "file": "variable_name.cpp", "symbols": [
+      {"name": "WINAPI", "kind": "variable", "source": "int WINAPI;"}
+    ]},
+    {"id": "variable-initializer", "family": "declarations", "file": "variable_initializer.cpp", "symbols": [
+      {"name": "API_CALL", "kind": "variable", "source": "int API_CALL = 1;"}
+    ]},
+    {"id": "variable-alias", "family": "declarations", "file": "variable_alias.cpp", "symbols": [
+      {"name": "value", "kind": "variable", "source": "WINAPI value;"}
+    ]},
+    {"id": "elaborated-class", "family": "declarations", "file": "elaborated_class.cpp", "symbols": [
+      {"name": "object", "kind": "variable", "source": "class Existing object {};"}
+    ]},
+    {"id": "module", "family": "modules", "file": "module.cpp", "compiler_flags": ["-fmodules", "-fcxx-modules"], "symbols": [
+      {"name": "get", "source": "int get() { return 1; }"}
+    ]},
+    {"id": "product", "family": "expressions", "file": "product.cpp", "expressions": ["a * b * c;"], "symbols": [
+      {"name": "compute", "source": "int compute(int a, int b, int c) { a * b * c; return 0; }"}
+    ]},
+    {"id": "product-uppercase", "family": "expressions", "file": "product_uppercase.cpp", "expressions": ["a * API_CALL * c;"], "symbols": [
+      {"name": "compute", "source": "int compute(int a, int API_CALL, int c) { a * API_CALL * c; return 0; }"}
+    ]},
+    {"id": "product-call", "family": "expressions", "file": "product_call.cpp", "expressions": ["a * b * f(c);"], "symbols": [
+      {"name": "f", "definition": false, "source": "int f(int);"},
+      {"name": "compute", "source": "int compute(int a, int b, int c) { a * b * f(c); return 0; }"}
+    ]},
+    {"id": "plain-c", "family": "headers", "file": "plain.c", "language": "c", "standard": "c11", "headers": ["plain.h"], "symbols": [
+      {"path": "plain.h", "name": "add", "definition": false, "source": "int add(int a, int b);"},
+      {"name": "add", "source": "int add(int a, int b) { return a + b; }"}
+    ]},
+    {"id": "out-of-line", "family": "headers", "file": "device.cpp", "headers": ["device.h"], "symbols": [
+      {"path": "device.h", "name": "check", "owner": ["N", "Device"], "definition": false, "source": "int check();"},
+      {"name": "check", "owner": ["N", "Device"], "source": "int N::Device::check() { return 7; }"}
+    ]},
+    {"id": "template", "family": "templates", "file": "template.cpp", "symbols": [
+      {"name": "identity", "return_type": "T", "source": "constexpr T identity(T value) { return value; }"}
+    ]},
+    {"id": "conditional-undef", "family": "annotation-context", "file": "conditional.cpp", "expressions": ["a * API_CALL * c;"], "symbols": [
+      {"name": "enabled", "source": "int API_CALL enabled() { return 1; }"},
+      {"name": "compute", "source": "int compute(int a, int API_CALL, int c) { a * API_CALL * c; return 0; }"}
+    ]},
+    {"id": "context-alias-redefinition", "family": "annotation-context", "known_gap": true, "file": "annotation_context.cpp", "expressions": ["a * short_abi * c;"], "symbols": [
+      {"name": "first", "source": "int indirect_abi first() { return 1; }"},
+      {"name": "second", "source": "int short_abi second() { return 2; }"},
+      {"name": "third", "source": "int third(int a, int short_abi, int c) {\n    a * short_abi * c;\n    return 3;\n}"}
+    ]},
+    {"id": "context-included-header", "family": "annotation-context", "known_gap": true, "file": "context_include.cpp", "headers": ["context_abi.h"], "expressions": ["a * local_abi * c;"], "symbols": [
+      {"path": "context_abi.h", "name": "declaration", "definition": false, "source": "int local_abi declaration();"},
+      {"name": "declaration", "source": "int local_abi declaration() { return 1; }"},
+      {"name": "product", "source": "int product(int a, int local_abi, int c) {\n    a * local_abi * c;\n    return 0;\n}"}
+    ]},
+    {"id": "context-c11", "family": "annotation-context", "known_gap": true, "file": "context_c.c", "language": "c", "standard": "c11", "expressions": ["a * short_abi * c;"], "symbols": [
+      {"name": "add", "source": "int short_abi add(int a, int b) { return a + b; }"},
+      {"name": "product", "source": "int product(int a, int short_abi, int c) {\n    a * short_abi * c;\n    return 0;\n}"}
+    ]},
+    {"id": "context-literals", "family": "annotation-context", "known_gap": true, "file": "context_literals.cpp", "symbols": [
+      {"name": "label", "kind": "variable", "source": "const char *label = \"local_abi\";"},
+      {"name": "raw_label", "kind": "variable", "source": "const char *raw_label = R\"tag(\nlocal_abi \" // /* not code\n)tag\";"},
+      {"name": "run", "source": "int local_abi run() { return 1; }"}
+    ]},
+    {"id": "context-leading-boundary", "family": "annotation-context", "known_gap": true, "file": "context_leading.cpp", "symbols": [
+      {"name": "run", "source": "local_abi /* declaration annotation */ int run() { return 1; }"}
+    ]},
+    {"id": "statement-alias", "family": "statement-macros", "known_gap": true, "file": "statement_alias.cpp", "symbols": [
+      {"name": "record", "definition": false, "source": "int record(int);"},
+      {"name": "sequence", "source": "int sequence(int value) {\n    forward(value)\n    send((value + 1))\n    return value;\n}"}
+    ]},
+    {"id": "statement-multiple", "family": "statement-macros", "known_gap": true, "file": "statement_multiple.cpp", "symbols": [
+      {"name": "record", "definition": false, "source": "int record(int);"},
+      {"name": "sequence", "source": "int sequence(int value) {\n    repeat(value)\n    return value;\n}"}
+    ]},
+    {"id": "statement-return", "family": "statement-macros", "known_gap": true, "file": "statement_return.cpp", "symbols": [
+      {"name": "first", "source": "int first(int value) {\n    finish(value)\n}"},
+      {"name": "second", "source": "int second(int value) { finish(value)return value + 1; }"}
+    ]},
+    {"id": "statement-included-c11", "family": "statement-macros", "known_gap": true, "file": "statement_include.c", "language": "c", "standard": "c11", "headers": ["statement_api.h"], "symbols": [
+      {"path": "statement_api.h", "name": "record", "definition": false, "source": "int record(int);"},
+      {"name": "sequence", "source": "int sequence(int value) {\n    dispatch(value)\n    return value;\n}"}
+    ]},
+    {"id": "statement-controls", "family": "statement-controls", "required": true, "file": "statement_controls.cpp", "expressions": [
+      {"source": "send(value);", "kind": "call_expression"},
+      {"source": "send(value + 1);", "kind": "call_expression"}
+    ], "symbols": [
+      {"name": "record", "definition": false, "source": "int record(int);"},
+      {"name": "label", "kind": "variable", "source": "const char *label = \"send(value) // not a macro call\";"},
+      {"name": "raw_label", "kind": "variable", "source": "const char *raw_label = R\"tag(send(value) /* not code */)tag\";"},
+      {"name": "before", "source": "int before(int value) {\n    send(value);\n    return value;\n}"},
+      {"name": "send", "definition": false, "source": "int send(int);"},
+      {"name": "after", "source": "int after(int value) {\n    // send(value) is now an ordinary function.\n    send(value + 1);\n    return value;\n}"}
+    ]},
+    {"id": "statement-generated-local", "family": "statement-macros", "known_gap": true, "file": "statement_scope.cpp", "headers": ["statement_scope.h"], "symbols": [
+      {"name": "run", "source": "int run(int input) {\n    finish(input)\n}"},
+      {"name": "saved_", "kind": "variable", "owner": ["run"], "origin": "macro-expansion", "source": "finish"}
+    ]},
+    {"id": "macro-generated-function", "family": "declaration-macros", "known_gap": true, "file": "generated_function.cpp", "headers": ["generated_function.h"], "symbols": [
+      {"name": "run", "origin": "macro-expansion", "source": "declare(run) { return 1; }"}
+    ]},
+    {"id": "raw-block-declaration-controls", "family": "statement-controls", "required": true, "file": "raw_block_declaration_controls.cpp", "forbid_uncertainty": true, "raw_nodes": [
+      {"kind": "function_definition", "source": "Device::Device(Token) {}"},
+      {"kind": "function_definition", "source": "Device::~Device() {}"}
+    ], "symbols": [
+      {"name": "Device", "owner": ["Device"], "return_type": null, "definition": false, "source": "Device(Token);"},
+      {"name": "~Device", "owner": ["Device"], "return_type": null, "definition": false, "source": "~Device();"},
+      {"name": "Device", "owner": ["Device"], "return_type": null, "source": "Device::Device(Token) {}"},
+      {"name": "~Device", "owner": ["Device"], "return_type": null, "source": "Device::~Device() {}"}
+    ]},
+    {"id": "raw-initializer-controls", "family": "statement-controls", "required": true, "file": "raw_initializer_controls.cpp", "forbid_uncertainty": true, "raw_nodes": [
+      {"kind": "declaration", "source": "Number first{get()};", "fields": {"declarator": "first{get()}"}},
+      {"kind": "declaration", "source": "Number second{\n        get()\n    };", "fields": {"declarator": "second{\n        get()\n    }"}}
+    ], "symbols": [
+      {"name": "get", "definition": false, "source": "int get();"},
+      {"name": "run", "source": "int run() {\n    Number first{get()};\n    Number second{\n        get()\n    };\n    return first + second;\n}"},
+      {"name": "first", "kind": "variable", "owner": ["run"], "source": "Number first{get()};"},
+      {"name": "second", "kind": "variable", "owner": ["run"], "source": "Number second{\n        get()\n    };"}
+    ]},
+    {"id": "raw-braced-declarator-controls", "family": "statement-controls", "required": true, "file": "raw_braced_declarator_controls.cpp", "forbid_uncertainty": true, "raw_nodes": [
+      {"kind": "declaration", "source": "int scalar{get()};"},
+      {"kind": "declaration", "source": "numbers::Integer qualified{get()};"},
+      {"kind": "declaration", "source": "Single<int> templated{\n    get()\n};"},
+      {"kind": "declaration", "source": "int array[2]{get(), get()};"},
+      {"kind": "declaration", "source": "int local{[]() { return get(); }()};"},
+      {"kind": "field_declaration", "source": "int member{get()};"}
+    ], "symbols": [
+      {"name": "get", "definition": false, "source": "int get();"},
+      {"name": "scalar", "kind": "variable", "source": "int scalar{get()};"},
+      {"name": "qualified", "kind": "variable", "source": "numbers::Integer qualified{get()};"},
+      {"name": "templated", "kind": "variable", "source": "Single<int> templated{\n    get()\n};"},
+      {"name": "array", "kind": "variable", "source": "int array[2]{get(), get()};"},
+      {"name": "nested", "source": "int nested() {\n    int local{[]() { return get(); }()};\n    return local;\n}"},
+      {"name": "local", "kind": "variable", "owner": ["nested"], "source": "int local{[]() { return get(); }()};"},
+      {"name": "member", "kind": "variable", "owner": ["Holder"], "source": "int member{get()};"},
+      {"name": "method", "owner": ["Holder"], "source": "int method() { return member; }"}
+    ]},
+    {"id": "raw-statement-initializer-mix", "family": "statement-macros", "known_gap": true, "file": "raw_statement_initializer_mix.cpp", "raw_nodes": [
+      {"kind": "uncertain_macro_statement", "source": "observe(value)", "fields": {"invocation": "observe(value)"}},
+      {"kind": "uncertain_macro_statement", "source": "observe(value + 1)", "fields": {"invocation": "observe(value + 1)"}},
+      {"kind": "uncertain_macro_statement", "source": "observe(value + 2)", "fields": {"invocation": "observe(value + 2)"}},
+      {"kind": "uncertain_macro_statement", "source": "observe(0)", "fields": {"invocation": "observe(0)"}},
+      {"kind": "declaration", "source": "int scalar{get()};"},
+      {"kind": "declaration", "source": "int nested{[&]() {\n        observe(value + 1)\n        return get();\n    }()};"}
+    ], "symbols": [
+      {"name": "get", "definition": false, "source": "int get();"},
+      {"name": "run", "source": "int run(int value) {\n    observe(value)\n    int scalar{get()};\n    int nested{[&]() {\n        observe(value + 1)\n        return get();\n    }()};\n    if (value) {\n        observe(value + 2)} else {\n        observe(0)}\n    return scalar + nested;\n}"},
+      {"name": "scalar", "kind": "variable", "owner": ["run"], "source": "int scalar{get()};"},
+      {"name": "nested", "kind": "variable", "owner": ["run"], "source": "int nested{[&]() {\n        observe(value + 1)\n        return get();\n    }()};"},
+      {"name": "after", "source": "int after() { return 0; }"}
+    ]},
+    {"id": "raw-bare-marker-recovery", "family": "statement-controls", "known_gap": true, "file": "raw_bare_marker_recovery.cpp", "raw_nodes": [
+      {"kind": "declaration", "source": "types::Number slot{1};"},
+      {"kind": "declaration", "source": "int saved = 1;"}
+    ], "symbols": [
+      {"name": "qualified", "source": "int qualified() {\n    trace()\n    sentinel\n    types::Number slot{1};\n    return slot;\n}"},
+      {"name": "slot", "kind": "variable", "owner": ["qualified"], "source": "types::Number slot{1};"},
+      {"name": "block", "source": "int block() {\n    trace()\n    sentinel {\n        int saved = 1;\n        return saved;\n    }\n}"},
+      {"name": "saved", "kind": "variable", "owner": ["block"], "source": "int saved = 1;"},
+      {"name": "after", "source": "int after() { return 0; }"}
+    ]},
+    {"id": "raw-function-head-controls", "family": "statement-controls", "required": true, "file": "raw_function_head_controls.cpp", "forbid_uncertainty": true, "raw_nodes": [
+      {"kind": "declaration", "source": "int (*callback)(int){choose()};"},
+      {"kind": "declaration", "source": "int (*callbacks[2])(int){choose(), choose()};"},
+      {"kind": "field_declaration", "source": "int (*member)(int){choose()};"}
+    ], "symbols": [
+      {"name": "choose", "definition": false, "return_type": "Fn", "source": "Fn choose();"},
+      {"name": "callback", "kind": "variable", "source": "int (*callback)(int){choose()};"},
+      {"name": "callbacks", "kind": "variable", "source": "int (*callbacks[2])(int){choose(), choose()};"},
+      {"name": "base", "kind": "variable", "source": "int base = 0;"},
+      {"name": "pointer", "return_type": "int*", "source": "int *pointer() { return &base; }"},
+      {"name": "reference", "return_type": "int&", "source": "int &reference() { return base; }"},
+      {"name": "parenthesized", "source": "int (parenthesized)() { return base; }"},
+      {"name": "member", "kind": "variable", "owner": ["Holder"], "source": "int (*member)(int){choose()};"},
+      {"name": "method", "return_type": "int*", "owner": ["Holder"], "source": "int *method() { return &base; }"}
+    ]},
+    {"id": "raw-function-head-statements", "family": "statement-macros", "known_gap": true, "file": "raw_function_head_statements.cpp", "raw_nodes": [
+      {"kind": "uncertain_macro_statement", "source": "finish_ptr()", "fields": {"invocation": "finish_ptr()"}},
+      {"kind": "uncertain_macro_statement", "source": "finish_ref()", "fields": {"invocation": "finish_ref()"}},
+      {"kind": "uncertain_macro_statement", "source": "finish_value()", "fields": {"invocation": "finish_value()"}},
+      {"kind": "uncertain_macro_statement", "source": "finish_member()", "fields": {"invocation": "finish_member()"}}
+    ], "symbols": [
+      {"name": "base", "kind": "variable", "source": "int base = 0;"},
+      {"name": "pointer", "return_type": "int*", "source": "int *pointer() { finish_ptr()}"},
+      {"name": "reference", "return_type": "int&", "source": "int &reference() { finish_ref()}"},
+      {"name": "parenthesized", "source": "int (parenthesized)() { finish_value()}"},
+      {"name": "method", "return_type": "int*", "owner": ["Holder"], "source": "int *method() { finish_member()}"}
+    ]},
+    {"id": "raw-class-marker-recovery", "family": "statement-controls", "known_gap": true, "file": "raw_class_marker_recovery.cpp", "raw_nodes": [
+      {"kind": "field_declaration", "source": "void configure(const Token& token);"}
+    ], "symbols": [
+      {"name": "configure", "definition": false, "return_type": "void", "owner": ["Holder"], "source": "void configure(const Token& token);"}
+    ]},
+    {"id": "raw-blocks-cpp", "family": "block-macros", "known_gap": true, "file": "raw_blocks.cpp", "raw_nodes": [
+      {"kind": "uncertain_macro_block", "source": "region((value + 1)) /* not a generated function */ {\n        int saved = value;\n        value += saved;\n    }", "fields": {
+        "invocation": "region((value + 1))", "body": "{\n        int saved = value;\n        value += saved;\n    }"
+      }}
+    ], "symbols": [
+      {"name": "before", "source": "int before() { return 1; }"},
+      {"name": "run", "source": "int run(int value) {\n    region((value + 1)) /* not a generated function */ {\n        int saved = value;\n        value += saved;\n    }\n    return value;\n}"},
+      {"name": "saved", "kind": "variable", "owner": ["run"], "source": "int saved = value;"},
+      {"name": "after", "source": "int after() { return 2; }"}
+    ]},
+    {"id": "raw-blocks-c", "family": "block-macros", "known_gap": true, "file": "raw_blocks.c", "language": "c", "standard": "c11", "raw_nodes": [
+      {"kind": "uncertain_macro_block", "source": "region(value)\n    {\n        int saved = value;\n        value += saved;\n    }", "fields": {
+        "invocation": "region(value)", "body": "{\n        int saved = value;\n        value += saved;\n    }"
+      }}
+    ], "symbols": [
+      {"name": "run", "source": "int run(int value) {\n    region(value)\n    {\n        int saved = value;\n        value += saved;\n    }\n    return value;\n}"},
+      {"name": "saved", "kind": "variable", "owner": ["run"], "source": "int saved = value;"},
+      {"name": "after", "source": "int after(void) { return 2; }"}
+    ]},
+    {"id": "raw-generated-block", "family": "block-macros", "known_gap": true, "file": "raw_generated_block.cpp", "raw_nodes": [
+      {"kind": "uncertain_macro_block", "source": "scenario(\"a label, not a declaration\") { return 1; }", "fields": {
+        "invocation": "scenario(\"a label, not a declaration\")", "body": "{ return 1; }"
+      }}
+    ], "symbols": [
+      {"name": "generated", "origin": "macro-expansion", "source": "scenario(\"a label, not a declaration\") { return 1; }"},
+      {"name": "after", "source": "int after() { return 2; }"}
+    ], "raw_symbols": [
+      {"name": "after", "source": "int after() { return 2; }"}
+    ]},
+    {"id": "raw-statements-cpp", "family": "statement-macros", "known_gap": true, "file": "raw_statements.cpp", "raw_nodes": [
+      {"kind": "uncertain_macro_statement", "source": "emit((value + 1))", "fields": {"invocation": "emit((value + 1))"}},
+      {"kind": "uncertain_macro_statement", "source": "guard(value)", "fields": {"invocation": "guard(value)"}},
+      {"kind": "uncertain_macro_statement", "source": "finish(saved)", "fields": {"invocation": "finish(saved)"}}
+    ], "symbols": [
+      {"name": "before", "source": "int before() { return 1; }"},
+      {"name": "run", "source": "int run(int value) {\n    emit((value + 1)) /* a physical boundary, not an expansion */\n    guard(value)\n    int saved = value;\n    finish(saved)\n}"},
+      {"name": "saved", "kind": "variable", "owner": ["run"], "source": "int saved = value;"},
+      {"name": "after", "source": "int after() { return 2; }"}
+    ]},
+    {"id": "raw-statements-c", "family": "statement-macros", "known_gap": true, "file": "raw_statements.c", "language": "c", "standard": "c11", "raw_nodes": [
+      {"kind": "uncertain_macro_statement", "source": "emit(value)", "fields": {"invocation": "emit(value)"}},
+      {"kind": "uncertain_macro_statement", "source": "finish(saved)", "fields": {"invocation": "finish(saved)"}}
+    ], "symbols": [
+      {"name": "run", "source": "int run(int value) {\n    emit(value) // trailing comment\n    int saved = value;\n    finish(saved)}"},
+      {"name": "saved", "kind": "variable", "owner": ["run"], "source": "int saved = value;"},
+      {"name": "after", "source": "int after(void) { return 2; }"}
+    ]},
+    {"id": "raw-statement-controls", "family": "statement-controls", "required": true, "file": "raw_statement_controls.cpp", "forbid_uncertainty": true, "expressions": [
+      {"source": "call(a)\n        /* still an ordinary call */ ;", "kind": "call_expression"},
+      {"source": "factory(a)\n        (b);", "kind": "call_expression"},
+      "call(a)\n        * b;",
+      "call(a)\n        and b;",
+      "call(a)\n        not_eq b;",
+      "call(a) \\\n        + b;"
+    ], "symbols": [
+      {"name": "call", "definition": false, "source": "int call(int);"},
+      {"name": "factory", "definition": false, "return_type": "Callback", "source": "Callback factory(int);"},
+      {"name": "run", "source": "int run(int a, int b) {\n    call(a)\n        /* still an ordinary call */ ;\n    factory(a)\n        (b);\n    call(a)\n        * b;\n    call(a)\n        and b;\n    call(a)\n        not_eq b;\n    call(a) \\\n        + b;\n    const char *label = \"emit(a)\\n{not code}\";\n    const char *raw = R\"tag(emit(a)\n/* not code */)tag\";\n    return label[0] + raw[0];\n}"},
+      {"name": "label", "kind": "variable", "owner": ["run"], "source": "const char *label = \"emit(a)\\n{not code}\";"},
+      {"name": "raw", "kind": "variable", "owner": ["run"], "source": "const char *raw = R\"tag(emit(a)\n/* not code */)tag\";"}
+    ]},
+    {"id": "attribute-and-index-controls", "family": "attributes", "required": true, "file": "attributes.cpp", "expressions": [
+      {"source": "values[values[0]];", "kind": "subscript_expression"}
+    ], "symbols": [
+      {"name": "use", "source": "int use([[maybe_unused]] int value) { return value; }"},
+      {"name": "index", "source": "int index(int *values) { values[values[0]]; return 0; }"}
+    ]}
+  ]
+}
