@@ -1,0 +1,56 @@
+name: Laboratory
+
+# macOS minutes are expensive on private repositories; run on pull requests and on demand.
+on:
+  pull_request:
+    paths:
+      - grammar.js
+      - src/**
+      - test/**
+      - lab/**
+      - package.json
+      - package-lock.json
+      - tree-sitter.json
+  workflow_dispatch:
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+jobs:
+  lab:
+    name: Fixture gate and lab tests
+    runs-on: macos-15
+    env:
+      CPP_LAB_CACHE: ${{github.workspace}}/.cache/lab
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+      - name: Install lab requirements
+        run: python -m pip install -r lab/requirements.txt
+      - name: Prepare upstream baseline and control candidate
+        run: python lab/bench.py prepare --upstream-source .
+      - name: Build the working tree grammar
+        run: |
+          python lab/cpp_dev.py init
+          python lab/cpp_dev.py build
+      - name: Committed generated sources match the pinned CLI
+        run: python lab/cpp_dev.py generated
+      - name: Native corpus
+        run: python lab/cpp_dev.py native
+      - name: Fixture regression gate
+        run: python lab/cpp_dev.py gate
+      - name: Lab tests and type check
+        run: |
+          python -m mypy lab/bench.py lab/census.py lab/cpp_build.py lab/cpp_dev.py lab/corpus.py lab/tools.py
+          python -m pytest lab/tests -q

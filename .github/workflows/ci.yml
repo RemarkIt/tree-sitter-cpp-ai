@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - grammar.js
       - src/**
@@ -41,6 +41,13 @@ jobs:
           ref: v0.24.1
       - name: Set up tree-sitter
         uses: tree-sitter/setup-action/cli@v2
+        with:
+          tree-sitter-ref: v0.26.5
+      - name: Verify generated sources
+        if: runner.os == 'Linux'
+        run: |
+          tree-sitter generate
+          git diff --exit-code -- src/
       - name: Run tests
         uses: tree-sitter/parser-test-action@v3
         with:

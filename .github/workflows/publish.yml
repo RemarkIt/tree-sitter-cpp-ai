@@ -1,8 +1,8 @@
 name: Publish packages
 
+# Manual until package publication is decided; the reusable jobs need registry secrets.
 on:
-  push:
-    tags: ["*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
