@@ -88,6 +88,24 @@ class EXPORT_API Widget : public Base {};
     (field_declaration_list)))
 
 ==================
+A class-head annotation without a base clause is certified by its own body,
+never read as a function returning the elaborated type it annotates
+==================
+struct LEVELDB_EXPORT Options {
+  int block_size;
+};
+---
+(translation_unit
+  (struct_specifier
+    (uncertain_specifier
+      (identifier))
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (field_identifier)))))
+
+==================
 Function-like macro used as a type before a same-line declarator
 ==================
 DECLARE_HANDLE(Session) current;

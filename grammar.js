@@ -200,6 +200,9 @@ module.exports = grammar(C, {
     $._preproc_end_of_input,
     // After a class key: `A` in `class A(...) Name`, certified by the name after the arguments.
     $._class_annotation_callee,
+    // After a class key: `A` in `class A Name {`, certified by a member declaration's own `;`
+    // inside the block, which a braced initializer of `A`'s own declarator never contains.
+    $._class_leading_annotation,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -491,6 +494,13 @@ module.exports = grammar(C, {
           optional($.base_class_clause),
           field('body', $.field_declaration_list),
         ),
+        // The common single-annotation, no-base-clause shape (e.g. `struct API_EXPORT Options {`):
+        // the scanner certifies it outright, so this never forks a GLR version like the choice above.
+        seq(
+          alias($._class_leading_uncertain_specifier, $.uncertain_specifier),
+          field('name', $._class_name),
+          field('body', $.field_declaration_list),
+        ),
         // `class M(args) Name` has no reading without an annotation, so unlike `class A b;`
         // it may also declare the class without a body.
         seq(
@@ -575,6 +585,11 @@ module.exports = grammar(C, {
     // The scanner certifies a leading annotation only when a keyword type follows on the same
     // line, so neither ordinary parsing nor error recovery can invent one before a type name.
     _leading_uncertain_specifier: $ => alias($._leading_annotation, $.identifier),
+
+    // Certified by the scanner only when a second bare identifier (the prospective class name) is
+    // directly followed by `{`, and that block's own `;` proves it a member declaration list
+    // rather than a braced initializer of an elaborated-type-specifier's plain declarator.
+    _class_leading_uncertain_specifier: $ => alias($._class_leading_annotation, $.identifier),
 
     // Leading annotations may interleave with modifiers, so wherever a type can still begin the
     // scanner sees this token as valid and does not certify a declarator annotation instead.

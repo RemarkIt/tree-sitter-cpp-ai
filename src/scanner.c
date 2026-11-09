@@ -19,6 +19,7 @@ enum TokenType {
     PREPROC_IF_PROBE,
     PREPROC_END_OF_INPUT,
     CLASS_ANNOTATION_CALLEE,
+    CLASS_LEADING_ANNOTATION,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -500,6 +501,69 @@ static bool class_annotation_follows(TSLexer *lexer) {
     return read_word(lexer, &word) && !word_in(&word, KEYWORDS) && lexer->lookahead != '"' && lexer->lookahead != '\'';
 }
 
+/// From a class head's own `{` (not yet consumed): true once a `;` appears at the block's own
+/// depth before any `,` at that depth, or before the block closes. Nested brackets, comments,
+/// quoted and raw-string literals cannot unbalance or falsely trigger the scan. A braced
+/// initializer's elements are always comma-separated expressions and never hold a bare top-level
+/// `;`, so finding one proves this block is a member declaration list instead.
+static bool class_body_members_follow(TSLexer *lexer) {
+    unsigned depth = 0;
+    for (unsigned budget = MAX_INVOCATION_SCAN; budget > 0; --budget) {
+        if (lexer->eof(lexer)) {
+            return false;
+        }
+        int32_t c = lexer->lookahead;
+        if (c == '{' || c == '(' || c == '[') {
+            depth++;
+            advance(lexer);
+        } else if (c == '}' || c == ')' || c == ']') {
+            advance(lexer);
+            if (--depth == 0) {
+                return false;
+            }
+        } else if (depth == 1 && c == ';') {
+            return true;
+        } else if (depth == 1 && c == ',') {
+            return false;
+        } else if (c == '/') {
+            bool newline = false;
+            advance(lexer);
+            skip_comment_after_slash(lexer, &newline);
+        } else if (c == '"' || c == '\'') {
+            if (!skip_quoted(lexer)) {
+                return false;
+            }
+        } else if (is_identifier_start(c)) {
+            Word word;
+            read_word(lexer, &word);
+            if (lexer->lookahead == '"' && is_raw_prefix(&word) && !skip_raw_string(lexer)) {
+                return false;
+            }
+        } else if (is_digit(c)) {
+            while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'') {
+                advance(lexer);
+            }
+        } else {
+            advance(lexer);
+        }
+    }
+    return false;
+}
+
+/// After a class key and a first bare identifier A (read; its end already marked): a second bare
+/// identifier directly followed by `{` has no ordinary reading other than `A` annotating that
+/// name, once the block it opens is certified a member declaration list. Stacked annotations and
+/// a base-clause after the name fall back to the ordinary GLR reading.
+static bool class_leading_annotation_follows(TSLexer *lexer) {
+    skip_horizontal_space(lexer);
+    Word word;
+    if (!is_identifier_start(lexer->lookahead) || !read_word(lexer, &word) || word_in(&word, KEYWORDS)) {
+        return false;
+    }
+    skip_horizontal_space(lexer);
+    return lexer->lookahead == '{' && class_body_members_follow(lexer);
+}
+
 /// Keywords that cannot follow an identifier in any declaration or expression, so a bare
 /// identifier before them ends a statement-like macro invocation.
 static const char *const STATEMENT_KEYWORDS[] = {
@@ -939,6 +1003,10 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
         lexer->result_symbol = MACRO_INVOCATION_CALLEE;
         return bare_macro_follows(lexer, valid_symbols[INITIALIZER_START_PROBE]);
     }
+    if (valid_symbols[CLASS_LEADING_ANNOTATION]) {
+        lexer->result_symbol = CLASS_LEADING_ANNOTATION;
+        return class_leading_annotation_follows(lexer);
+    }
     if (valid_symbols[LEADING_ANNOTATION]) {
         // A declaration may start here, so `A B` is an ordinary type and declarator.
         lexer->result_symbol = LEADING_ANNOTATION;
@@ -1075,7 +1143,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
 
     bool identifier_tokens = valid_symbols[LEADING_ANNOTATION] || valid_symbols[DECLARATOR_ANNOTATION] ||
                              valid_symbols[MACRO_INVOCATION_CALLEE] || valid_symbols[MACRO_TYPE_CALLEE] ||
-                             valid_symbols[CLASS_ANNOTATION_CALLEE];
+                             valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {
