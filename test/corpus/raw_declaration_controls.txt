@@ -1,0 +1,44 @@
+==================
+Call-shaped braced initializers remain variables
+==================
+int scalar{call()};
+int multiline{
+  call()
+};
+---
+(translation_unit
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (initializer_list
+        (call_expression (identifier) (argument_list)))))
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (initializer_list
+        (call_expression (identifier) (argument_list))))))
+
+==================
+Class initializer and ordinary neighboring method stay distinct
+==================
+struct Holder {
+  int member{call()};
+  void run() { return; }
+};
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (field_identifier)
+        (initializer_list
+          (call_expression (identifier) (argument_list))))
+      (function_definition
+        (primitive_type)
+        (function_declarator (field_identifier) (parameter_list))
+        (compound_statement
+          (return_statement))))))

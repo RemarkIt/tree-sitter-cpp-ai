@@ -1,0 +1,594 @@
+==================
+Semicolonless statement macros are certified invocations
+==================
+void run(int value) {
+  LOG_ENTRY(value)
+  ENSURE_READY
+  return;
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (uncertain_macro_invocation
+        (identifier)
+        (argument_list
+          (identifier)))
+      (uncertain_macro_invocation
+        (identifier))
+      (return_statement))))
+
+==================
+Top-level invocation followed by a block
+==================
+TEST_CASE("adds values") {
+  check(add(1, 2) == 3);
+}
+---
+(translation_unit
+  (uncertain_macro_invocation
+    (identifier)
+    (argument_list
+      (string_literal
+        (string_content)))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (binary_expression
+              (call_expression
+                (identifier)
+                (argument_list
+                  (number_literal)
+                  (number_literal)))
+              (number_literal))))))))
+
+==================
+Unexpanded leading, declarator and class-head annotations
+==================
+EXPORT_API int start(void);
+int CALLCONV stop(void);
+class EXPORT_API Widget : public Base {};
+---
+(translation_unit
+  (declaration
+    (uncertain_specifier
+      (identifier))
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)))))
+  (declaration
+    (primitive_type)
+    (annotated_declarator
+      (uncertain_specifier
+        (identifier))
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (primitive_type))))))
+  (class_specifier
+    (uncertain_specifier
+      (identifier))
+    (type_identifier)
+    (base_class_clause
+      (access_specifier)
+      (type_identifier))
+    (field_declaration_list)))
+
+==================
+Function-like macro used as a type before a same-line declarator
+==================
+DECLARE_HANDLE(Session) current;
+---
+(translation_unit
+  (declaration
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (identifier)))
+    (identifier)))
+
+==================
+Keyword type passed as a macro argument
+==================
+int next(va_list list) {
+  return va_arg(list, int);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (compound_statement
+      (return_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (type_descriptor
+              (primitive_type))))))))
+
+==================
+Typeless declarations name only constructors and destructors
+==================
+class Wrapper {
+  Result (*callback)(int);
+  BOOL (CALLBACK *procedure)(int);
+  METHOD_HEAD(run)(int count);
+  Wrapper(int value);
+  ~Wrapper();
+};
+---
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (function_declarator
+          (parenthesized_declarator
+            (pointer_declarator
+              (field_identifier)))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)))))
+      (field_declaration
+        (type_identifier)
+        (function_declarator
+          (parenthesized_declarator
+            (annotated_declarator
+              (uncertain_specifier
+                (identifier))
+              (pointer_declarator
+                (field_identifier))))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)))))
+      (field_declaration
+        (type_identifier)
+        (function_declarator
+          (parenthesized_declarator
+            (field_identifier))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))
+      (declaration
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))
+      (declaration
+        (function_declarator
+          (destructor_name
+            (identifier))
+          (parameter_list))))))
+
+==================
+Conditional arguments take the last branch in place
+==================
+void log_state(State state) {
+  print(state.id,
+#if defined(NARROW)
+        state.name,
+#else
+        widen(state.name),
+#endif
+        state.count);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (field_expression
+              (identifier)
+              (field_identifier))
+            (preproc_inactive_branch)
+            (call_expression
+              (identifier)
+              (argument_list
+                (field_expression
+                  (identifier)
+                  (field_identifier))))
+            (preproc_inline_conditional)
+            (field_expression
+              (identifier)
+              (field_identifier))))))))
+
+==================
+Conditionally compiled extern C braces
+==================
+#ifdef __cplusplus
+extern "C" {
+#endif
+int open_device(int id);
+#ifdef __cplusplus
+}
+#endif
+---
+(translation_unit
+  (preproc_inline_conditional)
+  (linkage_specification
+    (string_literal
+      (string_content))
+    (declaration_list
+      (preproc_inline_conditional)
+      (declaration
+        (primitive_type)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))
+      (preproc_inline_conditional)))
+  (preproc_inline_conditional))
+
+==================
+Conditional branches that close an enclosing lambda
+==================
+auto values = items | filter([](int item) {
+  return item > 0;
+#if defined(OLD_RANGES)
+}) | to_vector();
+#else
+}) | std::ranges::to<std::vector>();
+#endif
+---
+(translation_unit
+  (declaration
+    (placeholder_type_specifier
+      (auto))
+    (init_declarator
+      (identifier)
+      (binary_expression
+        (binary_expression
+          (identifier)
+          (call_expression
+            (identifier)
+            (argument_list
+              (lambda_expression
+                (lambda_capture_specifier)
+                (lambda_declarator
+                  (parameter_list
+                    (parameter_declaration
+                      (primitive_type)
+                      (identifier))))
+                (compound_statement
+                  (return_statement
+                    (binary_expression
+                      (identifier)
+                      (number_literal)))
+                  (preproc_inactive_branch))))))
+        (call_expression
+          (qualified_identifier
+            (namespace_identifier)
+            (qualified_identifier
+              (namespace_identifier)
+              (template_function
+                (identifier)
+                (template_argument_list
+                  (type_descriptor
+                    (qualified_identifier
+                      (namespace_identifier)
+                      (type_identifier)))))))
+          (argument_list)))))
+  (preproc_inline_conditional))
+
+==================
+Conditional type inside a typedef
+==================
+typedef
+#ifdef _WIN32
+  HMODULE
+#else
+  void *
+#endif
+  handle_t;
+---
+(translation_unit
+  (type_definition
+    (preproc_inactive_branch)
+    (primitive_type)
+    (pointer_declarator
+      (preproc_inline_conditional)
+      (type_identifier))))
+
+==================
+Conditional else branch of an if chain
+==================
+int dispatch(int command) {
+  if (command == 1) {
+    return 1;
+  }
+#if defined(EXTRA)
+  else if (command == 2) {
+    return 2;
+  }
+#endif
+  else {
+    return 0;
+  }
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (if_statement
+        (condition_clause
+          (binary_expression
+            (identifier)
+            (number_literal)))
+        (compound_statement
+          (return_statement
+            (number_literal)))
+        (preproc_inline_conditional)
+        (else_clause
+          (if_statement
+            (condition_clause
+              (binary_expression
+                (identifier)
+                (number_literal)))
+            (compound_statement
+              (return_statement
+                (number_literal)))
+            (preproc_inline_conditional)
+            (else_clause
+              (compound_statement
+                (return_statement
+                  (number_literal))))))))))
+
+==================
+Balanced item conditionals remain structured
+==================
+#if defined(FEATURE)
+int feature(void);
+#else
+int fallback(void);
+#endif
+enum Mode {
+  first,
+#ifdef EXTRA
+  extra,
+#endif
+  last
+};
+---
+(translation_unit
+  (preproc_if
+    (preproc_defined
+      (identifier))
+    (declaration
+      (primitive_type)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (primitive_type)))))
+    (preproc_else
+      (declaration
+        (primitive_type)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)))))))
+  (enum_specifier
+    (type_identifier)
+    (enumerator_list
+      (enumerator
+        (identifier))
+      (preproc_ifdef
+        (identifier)
+        (enumerator
+          (identifier)))
+      (enumerator
+        (identifier)))))
+
+==================
+Line continuation before a statement macro
+==================
+int read(int status) {
+  if (status != 0) {\
+    LOG_ERROR("failed: {}", status)
+    return -1;
+  }
+  return 0;
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (if_statement
+        (condition_clause
+          (binary_expression
+            (identifier)
+            (number_literal)))
+        (compound_statement
+          (uncertain_macro_invocation
+            (identifier)
+            (argument_list
+              (string_literal
+                (string_content))
+              (identifier)))
+          (return_statement
+            (number_literal))))
+      (return_statement
+        (number_literal)))))
+
+==================
+Bare macro followed by a conditional declaration
+==================
+int set_property(int id) {
+  GUARD_BEGIN
+
+#ifdef READ_ONLY
+  static std::set<int> blocked{1, 2};
+#else
+  static std::set<int> blocked{3};
+#endif
+  return blocked.count(id);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (uncertain_macro_invocation
+        (identifier))
+      (preproc_ifdef
+        (identifier)
+        (declaration
+          (storage_class_specifier)
+          (qualified_identifier
+            (namespace_identifier)
+            (template_type
+              (type_identifier)
+              (template_argument_list
+                (type_descriptor
+                  (primitive_type)))))
+          (init_declarator
+            (identifier)
+            (initializer_list
+              (number_literal)
+              (number_literal))))
+        (preproc_else
+          (declaration
+            (storage_class_specifier)
+            (qualified_identifier
+              (namespace_identifier)
+              (template_type
+                (type_identifier)
+                (template_argument_list
+                  (type_descriptor
+                    (primitive_type)))))
+            (init_declarator
+              (identifier)
+              (initializer_list
+                (number_literal))))))
+      (return_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (field_identifier))
+          (argument_list
+            (identifier)))))))
+
+==================
+Type name before a conditional declarator stays a type
+==================
+void configure() {
+  Settings
+#ifdef DEBUG
+  debug_settings;
+#else
+  release_settings;
+#endif
+  apply();
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (declaration
+        (type_identifier)
+        (preproc_inactive_branch)
+        (identifier))
+      (preproc_inline_conditional)
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))))
+
+==================
+Conditional member initializer with a leading comma
+==================
+Reader::Reader(Device device)
+    : device_(device)
+    , depth_(0)
+#if defined(TRACE)
+    , trace_{0}
+#endif
+{
+}
+---
+(translation_unit
+  (function_definition
+    (function_declarator
+      (qualified_identifier
+        (namespace_identifier)
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (field_initializer_list
+      (field_initializer
+        (field_identifier)
+        (argument_list
+          (identifier)))
+      (field_initializer
+        (field_identifier)
+        (argument_list
+          (number_literal)))
+      (preproc_inline_conditional)
+      (field_initializer
+        (field_identifier)
+        (initializer_list
+          (number_literal))))
+    (preproc_inline_conditional)
+    (compound_statement)))
