@@ -58,8 +58,8 @@ def test_manifest_rejects_empty_evidence(tmp_path):
 
 def test_manifest_never_shrinks_the_frozen_denominator(tmp_path):
     path = manifest(tmp_path, "a.cpp", b"int x;")
-    with pytest.raises(build.BenchError, match="Expected 499 frozen files"):
-        census.manifest_files(path, expected_files=499)
+    with pytest.raises(build.BenchError, match="Expected 3 frozen files"):
+        census.manifest_files(path, expected_files=3)
 
 
 def test_projection_deltas_preserve_multiplicity_ownership_and_original_ranges():
