@@ -609,8 +609,10 @@ module.exports = grammar(C, {
       field('arguments', $.argument_list),
     ),
 
-    // The scanner certifies a leading annotation only when a keyword type follows on the same
-    // line, so neither ordinary parsing nor error recovery can invent one before a type name.
+    // The scanner certifies a leading annotation only when what follows cannot be a type and its
+    // declarator: a keyword type on the same line, a qualified or templated type with a declarator
+    // after it, or a type and declarator after a specifier keyword. So neither ordinary parsing nor
+    // error recovery can invent one before a plain type name.
     _leading_uncertain_specifier: $ => alias($._leading_annotation, $.identifier),
 
     // Certified by the scanner only when a second bare identifier (the prospective class name) is

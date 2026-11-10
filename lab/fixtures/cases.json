@@ -330,6 +330,12 @@
       {"name": "after_parse", "kind": "variable", "owner": ["check_parse"], "source": "int after_parse = 1;"},
       {"name": "check_message", "return_type": "void", "source": "void check_message() {\n    CHECK_THROWS_WITH_AS(json::parse(\"y\"), \"bad input\", json::parse_error*);\n    int after_message = 2;\n}"},
       {"name": "after_message", "kind": "variable", "owner": ["check_message"], "source": "int after_message = 2;"}
+    ]},
+    {"id": "leading-annotation-qualified-types", "family": "annotation", "required": true, "file": "leading_qualified.cpp", "symbols": [
+      {"name": "pick", "return_type": "util::Point&", "source": "FORCE_INLINE util::Point &pick(util::Point &point) { return point; }"},
+      {"name": "unwrap", "return_type": "util::Box<int>*", "source": "NOINLINE util::Box<int> *\nunwrap(util::Box<int> *box) { return box; }"},
+      {"name": "find", "return_type": "util::Point*", "source": "EXPORT_API static util::Point *find(util::Point *points) { return points; }"},
+      {"name": "count", "return_type": "int", "source": "int count(IN_PARAM const util::Point &first, IN_PARAM util::Box<int> *box) { return 2; }"}
     ]}
   ]
 }

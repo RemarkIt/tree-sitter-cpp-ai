@@ -194,27 +194,6 @@ static inline void skip_horizontal_space(TSLexer *lexer) {
     }
 }
 
-/// After `A` (already consumed): certify `A [B ...] [specifier keywords] keyword-type` on one
-/// physical line. A following non-keyword type name is never preceded by an invented annotation.
-static bool leading_annotation_follows(TSLexer *lexer) {
-    Word word;
-    bool after_specifier = false;
-    for (;;) {
-        skip_horizontal_space(lexer);
-        if (!read_word(lexer, &word)) {
-            return false;
-        }
-        if (word_in(&word, TYPE_KEYWORDS) || (after_specifier && is_placeholder_keyword(&word))) {
-            return true;
-        }
-        if (word_in(&word, SPECIFIER_KEYWORDS)) {
-            after_specifier = true;
-        } else if (after_specifier || word_in(&word, KEYWORDS)) {
-            return false;
-        }
-    }
-}
-
 /// After `A` (already consumed): the next token continues the declarator, i.e. another
 /// identifier, `*` or `&`. A declarator name is never followed by these tokens.
 static bool declarator_annotation_follows(TSLexer *lexer) {
@@ -699,6 +678,98 @@ static bool skip_template_arguments(TSLexer *lexer) {
         }
     }
     return false;
+}
+
+/// Calling conventions that may stand between a declared type and its declarator.
+static const char *const CALLING_CONVENTIONS[] = {
+    "__cdecl", "__clrcall", "__fastcall", "__stdcall", "__thiscall", "__vectorcall", NULL,
+};
+
+/// After a type name's first word (consumed): consume its `::` qualifiers and template arguments,
+/// then certify that a declarator follows: cv-qualifiers, calling conventions, `*` and `&`, then
+/// a name. A `(` right after the type is left unclaimed, since `A ns::f(` and `A f<T>(` are
+/// ordinary declarators of type `A`. Only a qualified or templated type, which a declarator
+/// cannot continue, may put its declarator on a later line.
+static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
+    Word word;
+    for (;;) {
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == '<') {
+            if (!skip_template_arguments(lexer)) {
+                return false;
+            }
+            qualified = true;
+        } else if (lexer->lookahead == ':') {
+            advance(lexer);
+            if (lexer->lookahead != ':') {
+                return false;
+            }
+            advance(lexer);
+            skip_horizontal_space(lexer);
+            if (!read_word(lexer, &word) || (word_in(&word, KEYWORDS) && !word_in(&word, TYPE_KEYWORDS))) {
+                return false;
+            }
+            qualified = true;
+        } else {
+            break;
+        }
+    }
+    for (;;) {
+        bool newline = false;
+        if (!skip_trivia(lexer, &newline) || (newline && !qualified)) {
+            return false;
+        }
+        if (lexer->lookahead == '*' || lexer->lookahead == '&') {
+            advance(lexer);
+            continue;
+        }
+        if (!read_word(lexer, &word)) {
+            return false;
+        }
+        if (word_is(&word, "const") || word_is(&word, "volatile") || word_in(&word, CALLING_CONVENTIONS)) {
+            continue;
+        }
+        return !word_in(&word, KEYWORDS) || word_is(&word, "operator");
+    }
+}
+
+/// After `A` (already consumed): certify `A [B ...] [specifier keywords]` followed on one physical
+/// line by a keyword type, by a qualified or templated type and its declarator, or, after a
+/// specifier keyword, by any type name and its declarator. `A B` alone stays a type and its
+/// declarator, so a plain type name directly after annotations is never claimed.
+static bool leading_annotation_follows(TSLexer *lexer) {
+    if (lexer->lookahead == ':' || lexer->lookahead == '<') {
+        // `A::` and `A<` begin a qualified or templated name.
+        return false;
+    }
+    Word word;
+    bool after_specifier = false;
+    for (;;) {
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == ':') {
+            return type_declarator_follows(lexer, true);
+        }
+        if (!read_word(lexer, &word)) {
+            return false;
+        }
+        if (word_in(&word, TYPE_KEYWORDS) || (after_specifier && is_placeholder_keyword(&word))) {
+            return true;
+        }
+        if (word_in(&word, SPECIFIER_KEYWORDS)) {
+            after_specifier = true;
+            continue;
+        }
+        if (word_in(&word, KEYWORDS)) {
+            return false;
+        }
+        if (after_specifier) {
+            return type_declarator_follows(lexer, false);
+        }
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == ':' || lexer->lookahead == '<') {
+            return type_declarator_follows(lexer, true);
+        }
+    }
 }
 
 /// True when the next token, at the start of a later line, begins a new statement or

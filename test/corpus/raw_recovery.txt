@@ -1040,3 +1040,183 @@ void declared(Foo&, ns::Bar*);
             (namespace_identifier)
             (type_identifier))
           (abstract_pointer_declarator))))))
+
+==================
+Leading annotations before qualified and templated types
+==================
+FORCE_INLINE std::pair<int, int> split(int value);
+NOINLINE std::shared_ptr<Context>
+Context::current() { return nullptr; }
+ALWAYS_INLINE static Mode get_mode() { return mode; }
+INLINE_VAR constexpr std::uint8_t ACCEPT = 0;
+NODISCARD inline ::wil::unique_call startup() { return {}; }
+ERASE like_t<S, T>* down_cast(S* ptr) { return ptr; }
+NOINLINE result<int> run() { return 1; }
+void move_to(_In_ const til::point position);
+void set_mode(_In_ Dispatch::Params const param, const bool enable);
+HRESULT init(_In_ Render::IData* data, _In_ Events<A*, B*>* handler);
+---
+(translation_unit
+  (declaration
+    (uncertain_specifier
+      (identifier))
+    (qualified_identifier
+      (namespace_identifier)
+      (template_type
+        (type_identifier)
+        (template_argument_list
+          (type_descriptor
+            (primitive_type))
+          (type_descriptor
+            (primitive_type)))))
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))))
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (qualified_identifier
+      (namespace_identifier)
+      (template_type
+        (type_identifier)
+        (template_argument_list
+          (type_descriptor
+            (type_identifier)))))
+    (function_declarator
+      (qualified_identifier
+        (namespace_identifier)
+        (identifier))
+      (parameter_list))
+    (compound_statement
+      (return_statement
+        (null))))
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (storage_class_specifier)
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (return_statement
+        (identifier))))
+  (declaration
+    (uncertain_specifier
+      (identifier))
+    (type_qualifier)
+    (qualified_identifier
+      (namespace_identifier)
+      (type_identifier))
+    (init_declarator
+      (identifier)
+      (number_literal)))
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (storage_class_specifier)
+    (qualified_identifier
+      (qualified_identifier
+        (namespace_identifier)
+        (type_identifier)))
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (return_statement
+        (initializer_list))))
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (template_type
+      (type_identifier)
+      (template_argument_list
+        (type_descriptor
+          (type_identifier))
+        (type_descriptor
+          (type_identifier))))
+    (pointer_declarator
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (pointer_declarator
+              (identifier))))))
+    (compound_statement
+      (return_statement
+        (identifier))))
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (template_type
+      (type_identifier)
+      (template_argument_list
+        (type_descriptor
+          (primitive_type))))
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (return_statement
+        (number_literal))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (type_qualifier)
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (identifier)))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (type_qualifier)
+          (identifier))
+        (parameter_declaration
+          (type_qualifier)
+          (primitive_type)
+          (identifier)))))
+  (declaration
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (pointer_declarator
+            (identifier)))
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (template_type
+            (type_identifier)
+            (template_argument_list
+              (type_descriptor
+                (type_identifier)
+                (abstract_pointer_declarator))
+              (type_descriptor
+                (type_identifier)
+                (abstract_pointer_declarator))))
+          (pointer_declarator
+            (identifier)))))))

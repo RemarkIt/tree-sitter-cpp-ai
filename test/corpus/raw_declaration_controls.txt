@@ -451,3 +451,154 @@ void f() {
                         (namespace_identifier)
                         (type_identifier)))))
                 (identifier)))))))))
+
+==================
+Qualified declarators and specifier orders without annotations
+==================
+Counter Registry::count;
+Result Widget::refresh(int value) { return value; }
+Result convert<int>(int value);
+Result Table<Key>::lookup(Key key) { return key; }
+Name const fallback = "none";
+Name const Registry::label = "registry";
+enum Kind : std::uint8_t { First };
+struct Bits { Flag mode : 3; };
+void f() {
+    std::vector<int> values;
+    ns::Type local;
+    total = left < right;
+done:
+    ns::reset();
+}
+void g(Name const name, Holder<Item> items);
+---
+(translation_unit
+  (declaration
+    (type_identifier)
+    (qualified_identifier
+      (namespace_identifier)
+      (identifier)))
+  (function_definition
+    (type_identifier)
+    (function_declarator
+      (qualified_identifier
+        (namespace_identifier)
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (return_statement
+        (identifier))))
+  (declaration
+    (type_identifier)
+    (function_declarator
+      (template_function
+        (identifier)
+        (template_argument_list
+          (type_descriptor
+            (primitive_type))))
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))))
+  (function_definition
+    (type_identifier)
+    (function_declarator
+      (qualified_identifier
+        (template_type
+          (type_identifier)
+          (template_argument_list
+            (type_descriptor
+              (type_identifier))))
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (compound_statement
+      (return_statement
+        (identifier))))
+  (declaration
+    (type_identifier)
+    (type_qualifier)
+    (init_declarator
+      (identifier)
+      (string_literal
+        (string_content))))
+  (declaration
+    (type_identifier)
+    (type_qualifier)
+    (init_declarator
+      (qualified_identifier
+        (namespace_identifier)
+        (identifier))
+      (string_literal
+        (string_content))))
+  (enum_specifier
+    (type_identifier)
+    (qualified_identifier
+      (namespace_identifier)
+      (type_identifier))
+    (enumerator_list
+      (enumerator
+        (identifier))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (field_identifier)
+        (bitfield_clause
+          (number_literal)))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (declaration
+        (qualified_identifier
+          (namespace_identifier)
+          (template_type
+            (type_identifier)
+            (template_argument_list
+              (type_descriptor
+                (primitive_type)))))
+        (identifier))
+      (declaration
+        (qualified_identifier
+          (namespace_identifier)
+          (type_identifier))
+        (identifier))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (binary_expression
+            (identifier)
+            (identifier))))
+      (labeled_statement
+        (statement_identifier)
+        (expression_statement
+          (call_expression
+            (qualified_identifier
+              (namespace_identifier)
+              (identifier))
+            (argument_list))))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (type_qualifier)
+          (identifier))
+        (parameter_declaration
+          (template_type
+            (type_identifier)
+            (template_argument_list
+              (type_descriptor
+                (type_identifier))))
+          (identifier))))))
