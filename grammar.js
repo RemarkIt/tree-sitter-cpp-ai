@@ -1377,6 +1377,30 @@ module.exports = grammar(C, {
       optional(field('arguments', $.argument_list)),
     )),
 
+    // `T stats_[N] GUARDED_BY(mutex_);`: an annotation after an array declarator, certified like
+    // one after a function declarator's parameters.
+    array_declarator: ($, original) => choice(
+      original,
+      prec(1, seq(
+        field('declarator', $._declarator),
+        '[',
+        field('size', optional($.expression)),
+        ']',
+        repeat1(alias($._function_suffix_specifier, $.uncertain_specifier)),
+      )),
+    ),
+
+    array_field_declarator: ($, original) => choice(
+      original,
+      prec(1, seq(
+        field('declarator', $._field_declarator),
+        '[',
+        field('size', optional($.expression)),
+        ']',
+        repeat1(alias($._function_suffix_specifier, $.uncertain_specifier)),
+      )),
+    ),
+
     _function_exception_specification: $ => choice(
       $.noexcept,
       $.throw_specifier,

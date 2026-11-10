@@ -3218,3 +3218,28 @@ METHOD(RESULT T, FailFast_IfNull)
                 (identifier))
               (identifier)))))
       (compound_statement))))
+
+================================================================================
+Annotation after an array field declarator
+================================================================================
+
+class DB
+{
+  Stats stats_[kNumLevels] GUARDED_BY(mutex_);
+};
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (array_declarator
+          (field_identifier)
+          (identifier)
+          (uncertain_specifier
+            (identifier)
+            (argument_list
+              (identifier))))))))

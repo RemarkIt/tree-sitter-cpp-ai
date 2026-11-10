@@ -954,6 +954,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
