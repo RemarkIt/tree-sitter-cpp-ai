@@ -18161,8 +18161,22 @@
             {
               "type": "REPEAT",
               "content": {
-                "type": "SYMBOL",
-                "name": "lambda_specifier"
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "SYMBOL",
+                    "name": "lambda_specifier"
+                  },
+                  {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_function_suffix_specifier"
+                    },
+                    "named": true,
+                    "value": "uncertain_specifier"
+                  }
+                ]
               }
             },
             {

@@ -1775,7 +1775,9 @@ module.exports = grammar(C, {
       seq(
         repeat($.attribute_declaration),
         field('parameters', $.parameter_list),
-        repeat($.lambda_specifier),
+        // As after a function's parameters, an identifier here is an unexpanded annotation, as in
+        // `[&](GUID id) WI_NOEXCEPT {`: lambda specifiers are all keywords.
+        repeat(choice($.lambda_specifier, alias($._function_suffix_specifier, $.uncertain_specifier))),
         optional($._function_exception_specification),
         repeat($.attribute_declaration),
         optional($.trailing_return_type),

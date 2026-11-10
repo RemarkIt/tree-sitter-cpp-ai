@@ -1821,3 +1821,132 @@ inline namespace v1 { int z; }
       (declaration
         (primitive_type)
         (identifier)))))
+
+==================
+Lambda specifiers, attributes and subscript calls keep their reading
+==================
+void f() {
+  auto a = [](int x) mutable { return x; };
+  auto b = [](int x) -> int { return x; };
+  auto c = [](int x) noexcept { return x; };
+  auto d = [](int x) constexpr { return x; };
+  int v = arr[i](y);
+  int w = table[k](z) + other;
+  auto e = [](int x) [[nodiscard]] { return x; };
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier)
+            (lambda_declarator
+              (parameter_list
+                (parameter_declaration
+                  (primitive_type)
+                  (identifier)))
+              (lambda_specifier))
+            (compound_statement
+              (return_statement
+                (identifier))))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier)
+            (lambda_declarator
+              (parameter_list
+                (parameter_declaration
+                  (primitive_type)
+                  (identifier)))
+              (trailing_return_type
+                (type_descriptor
+                  (primitive_type))))
+            (compound_statement
+              (return_statement
+                (identifier))))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier)
+            (lambda_declarator
+              (parameter_list
+                (parameter_declaration
+                  (primitive_type)
+                  (identifier)))
+              (noexcept))
+            (compound_statement
+              (return_statement
+                (identifier))))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier)
+            (lambda_declarator
+              (parameter_list
+                (parameter_declaration
+                  (primitive_type)
+                  (identifier)))
+              (lambda_specifier))
+            (compound_statement
+              (return_statement
+                (identifier))))))
+      (declaration
+        (primitive_type)
+        (init_declarator
+          (identifier)
+          (call_expression
+            (subscript_expression
+              (identifier)
+              (subscript_argument_list
+                (identifier)))
+            (argument_list
+              (identifier)))))
+      (declaration
+        (primitive_type)
+        (init_declarator
+          (identifier)
+          (binary_expression
+            (call_expression
+              (subscript_expression
+                (identifier)
+                (subscript_argument_list
+                  (identifier)))
+              (argument_list
+                (identifier)))
+            (identifier))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier)
+            (lambda_declarator
+              (parameter_list
+                (parameter_declaration
+                  (primitive_type)
+                  (identifier)))
+              (attribute_declaration
+                (attribute
+                  (identifier))))
+            (compound_statement
+              (return_statement
+                (identifier)))))))))

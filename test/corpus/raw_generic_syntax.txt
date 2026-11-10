@@ -1234,3 +1234,87 @@ int x;
       (declaration
         (primitive_type)
         (identifier)))))
+
+==================
+Annotation macros after lambda parameters
+==================
+void f() {
+  auto load = [&](int guid, void* ptr) WI_NOEXCEPT {
+    return 1;
+  };
+  EnumChildWindows(parent, [](HWND hwnd, LPARAM lParam) WINAPI_LAMBDA {
+    return TRUE;
+  }, 0);
+  auto guarded = [this]() LOCKS_EXCLUDED(mu_) -> int { return 0; };
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier
+              (lambda_default_capture))
+            (lambda_declarator
+              (parameter_list
+                (parameter_declaration
+                  (primitive_type)
+                  (identifier))
+                (parameter_declaration
+                  (primitive_type)
+                  (pointer_declarator
+                    (identifier))))
+              (uncertain_specifier
+                (identifier)))
+            (compound_statement
+              (return_statement
+                (number_literal))))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (lambda_expression
+              (lambda_capture_specifier)
+              (lambda_declarator
+                (parameter_list
+                  (parameter_declaration
+                    (type_identifier)
+                    (identifier))
+                  (parameter_declaration
+                    (type_identifier)
+                    (identifier)))
+                (uncertain_specifier
+                  (identifier)))
+              (compound_statement
+                (return_statement
+                  (true))))
+            (number_literal))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier
+              (this))
+            (lambda_declarator
+              (parameter_list)
+              (uncertain_specifier
+                (identifier)
+                (argument_list
+                  (identifier)))
+              (trailing_return_type
+                (type_descriptor
+                  (primitive_type))))
+            (compound_statement
+              (return_statement
+                (number_literal)))))))))

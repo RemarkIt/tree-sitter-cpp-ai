@@ -4502,6 +4502,10 @@
         {
           "type": "trailing_return_type",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }

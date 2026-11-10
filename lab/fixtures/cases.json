@@ -438,6 +438,19 @@
         {"name": "inner_offset", "source": "int inner_offset() {\n    return offsetof(Outer, inner[1].value);\n}"},
         {"name": "version", "owner": ["v1"], "source": "int version() {\n    return 1;\n}"}
       ]
+    },
+    {
+      "id": "lambda-suffix-annotations",
+      "family": "annotation",
+      "required": true,
+      "file": "lambda_suffix_annotations.cpp",
+      "symbols": [
+        {"name": "apply", "source": "int apply(int (*callback)(int), int value) {\n    return callback(value);\n}"},
+        {"name": "run", "source": "int run(int seed) {\n    auto twice = [](int x) CALLBACK_NOEXCEPT { return x * 2; };\n    int total = apply([](int x) CALL_CONVENTION { return x + 1; }, seed);\n    return twice(total);\n}"},
+        {"name": "twice", "kind": "variable", "owner": ["run"], "source": "auto twice = [](int x) CALLBACK_NOEXCEPT { return x * 2; };"},
+        {"name": "total", "kind": "variable", "owner": ["run"], "source": "int total = apply([](int x) CALL_CONVENTION { return x + 1; }, seed);"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }
