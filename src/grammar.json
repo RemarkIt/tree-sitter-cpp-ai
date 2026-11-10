@@ -4403,6 +4403,15 @@
           "type": "ALIAS",
           "content": {
             "type": "SYMBOL",
+            "name": "_member_pointer_field_declarator"
+          },
+          "named": true,
+          "value": "pointer_declarator"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
             "name": "annotated_field_declarator"
           },
           "named": true,
@@ -9244,6 +9253,39 @@
                 "content": {
                   "type": "STRING",
                   "value": "not_eq"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "right",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "expression"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "PREC_LEFT",
+          "value": 11,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "left",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "expression"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "operator",
+                "content": {
+                  "type": "STRING",
+                  "value": "->*"
                 }
               },
               {
@@ -15633,6 +15675,42 @@
           "value": "protected"
         }
       ]
+    },
+    "_member_pointer_field_declarator": {
+      "type": "PREC_DYNAMIC",
+      "value": 1,
+      "content": {
+        "type": "PREC_RIGHT",
+        "value": 0,
+        "content": {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_scope_resolution"
+            },
+            {
+              "type": "STRING",
+              "value": "*"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SYMBOL",
+                "name": "type_qualifier"
+              }
+            },
+            {
+              "type": "FIELD",
+              "name": "declarator",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_field_declarator"
+              }
+            }
+          ]
+        }
+      }
     },
     "reference_declarator": {
       "type": "PREC_DYNAMIC",

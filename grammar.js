@@ -1143,6 +1143,7 @@ module.exports = grammar(C, {
 
     _field_declarator: ($, original) => choice(
       original,
+      alias($._member_pointer_field_declarator, $.pointer_declarator),
       alias($.annotated_field_declarator, $.annotated_declarator),
       alias($.reference_field_declarator, $.reference_declarator),
       $.template_method,
@@ -1160,6 +1161,16 @@ module.exports = grammar(C, {
       alias($.abstract_annotated_declarator, $.annotated_declarator),
       $.abstract_reference_declarator,
     ),
+
+    // Pointers to members among members: `int C::*p;` and `void (C::*f)(int);`. Namespace-scope
+    // declarators keep upstream's reading; the abstract `T C::*` stays unsupported, since it
+    // conflicts with sized types in template parameter lists.
+    _member_pointer_field_declarator: $ => prec.dynamic(1, prec.right(seq(
+      $._scope_resolution,
+      '*',
+      repeat($.type_qualifier),
+      field('declarator', $._field_declarator),
+    ))),
 
     reference_declarator: $ => prec.dynamic(1, prec.right(seq(choice('&', '&&'), $._declarator))),
     reference_field_declarator: $ => prec.dynamic(1, prec.right(seq(choice('&', '&&'), $._field_declarator))),
@@ -1877,6 +1888,9 @@ module.exports = grammar(C, {
         ['xor', PREC.EXCLUSIVE_OR],
         ['bitand', PREC.BITWISE_AND],
         ['not_eq', PREC.EQUAL],
+        // `ptr->*member` binds looser than casts; sharing multiplication's level only groups the
+        // rare `a * b->*c` from the left.
+        ['->*', PREC.MULTIPLY],
       ];
 
       return choice(

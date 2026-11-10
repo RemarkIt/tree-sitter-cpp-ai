@@ -729,3 +729,82 @@ template <class View> auto convert(View s) {
                   (identifier)
                   (field_identifier))
                 (argument_list)))))))))
+
+==================
+Pointers to members among members and the ->* operator
+==================
+struct Runner {
+    void (Benchmark::*method)(int);
+    int Benchmark::*counter;
+    static int Benchmark::*offset();
+    void start(int n) { (bench->*method)(n); (this->*method)(n); }
+};
+auto value = (s->*(&Access::get))();
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (parenthesized_declarator
+            (pointer_declarator
+              (namespace_identifier)
+              (field_identifier)))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)))))
+      (field_declaration
+        (primitive_type)
+        (pointer_declarator
+          (namespace_identifier)
+          (field_identifier)))
+      (field_declaration
+        (storage_class_specifier)
+        (primitive_type)
+        (pointer_declarator
+          (namespace_identifier)
+          (function_declarator
+            (field_identifier)
+            (parameter_list))))
+      (function_definition
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier))))
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (parenthesized_expression
+                (binary_expression
+                  (identifier)
+                  (identifier)))
+              (argument_list
+                (identifier))))
+          (expression_statement
+            (call_expression
+              (parenthesized_expression
+                (binary_expression
+                  (this)
+                  (identifier)))
+              (argument_list
+                (identifier))))))))
+  (declaration
+    (placeholder_type_specifier
+      (auto))
+    (init_declarator
+      (identifier)
+      (call_expression
+        (parenthesized_expression
+          (binary_expression
+            (identifier)
+            (parenthesized_expression
+              (pointer_expression
+                (qualified_identifier
+                  (namespace_identifier)
+                  (identifier))))))
+        (argument_list)))))

@@ -392,6 +392,15 @@
     {"id": "typename-expressions", "family": "expression-macros", "required": true, "file": "typename_expressions.cpp", "symbols": [
       {"name": "convert", "source": "int convert(T value) {\n    T copy = typename Wrapper<T>::type(value);\n    CHECK_TYPE(value, typename Wrapper<T>::type&);\n    return 1;\n}"},
       {"name": "copy", "kind": "variable", "owner": ["convert"], "source": "T copy = typename Wrapper<T>::type(value);"}
+    ]},
+    {"id": "member-pointers", "family": "declarators", "required": true, "file": "member_pointers.cpp", "symbols": [
+      {"name": "run", "owner": ["Benchmark"], "return_type": "void", "source": "void run(int n) {}"},
+      {"name": "count", "kind": "variable", "owner": ["Benchmark"], "source": "int count;"},
+      {"name": "method", "kind": "variable", "owner": ["Runner"], "source": "void (Benchmark::*method)(int);"},
+      {"name": "bench", "kind": "variable", "owner": ["Runner"], "source": "Benchmark* bench;"},
+      {"name": "counter", "kind": "variable", "owner": ["Runner"], "source": "int Benchmark::*counter;"},
+      {"name": "start", "owner": ["Runner"], "return_type": "void", "source": "void start(int n) { (bench->*method)(n); }"},
+      {"name": "total", "owner": ["Runner"], "source": "int total() const { return bench->*counter; }"}
     ]}
   ]
 }

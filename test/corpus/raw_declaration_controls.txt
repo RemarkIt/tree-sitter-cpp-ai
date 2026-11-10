@@ -1454,3 +1454,47 @@ template <class T> void g() {
                       (parameter_declaration
                         (primitive_type))))))))
           (identifier))))))
+
+==================
+Qualified pointer fields and bitfields beside member pointers
+==================
+struct Node {
+    int count : 3;
+    Base::Inner* inner;
+    std::vector<int>::iterator* it;
+    int width = a * b;
+};
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (field_identifier)
+        (bitfield_clause
+          (number_literal)))
+      (field_declaration
+        (qualified_identifier
+          (namespace_identifier)
+          (type_identifier))
+        (pointer_declarator
+          (field_identifier)))
+      (field_declaration
+        (qualified_identifier
+          (namespace_identifier)
+          (qualified_identifier
+            (template_type
+              (type_identifier)
+              (template_argument_list
+                (type_descriptor
+                  (primitive_type))))
+            (type_identifier)))
+        (pointer_declarator
+          (field_identifier)))
+      (field_declaration
+        (primitive_type)
+        (field_identifier)
+        (binary_expression
+          (identifier)
+          (identifier))))))
