@@ -2788,3 +2788,23 @@ EM_JS(void, open_url, (char const *url), { open(url); });
     (call_expression
       (identifier)
       (uncertain_arguments))))
+
+================================================================================
+Objective-C forward declarations in a header
+================================================================================
+
+#ifdef __OBJC__
+@class NSView;
+@protocol MTLDevice, MTLCommandBuffer;
+#endif
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (preproc_ifdef
+    (identifier)
+    (objc_forward_declaration
+      (identifier))
+    (objc_forward_declaration
+      (identifier)
+      (identifier))))

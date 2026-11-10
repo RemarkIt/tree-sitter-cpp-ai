@@ -5026,6 +5026,21 @@
     "fields": {}
   },
   {
+    "type": "objc_forward_declaration",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "offsetof_expression",
     "named": true,
     "fields": {
@@ -5788,6 +5803,10 @@
           "named": true
         },
         {
+          "type": "objc_forward_declaration",
+          "named": true
+        },
+        {
           "type": "preproc_call",
           "named": true
         },
@@ -5952,6 +5971,10 @@
           "named": true
         },
         {
+          "type": "objc_forward_declaration",
+          "named": true
+        },
+        {
           "type": "preproc_call",
           "named": true
         },
@@ -6084,6 +6107,10 @@
         },
         {
           "type": "namespace_definition",
+          "named": true
+        },
+        {
+          "type": "objc_forward_declaration",
           "named": true
         },
         {
@@ -6319,6 +6346,10 @@
           "named": true
         },
         {
+          "type": "objc_forward_declaration",
+          "named": true
+        },
+        {
           "type": "preproc_call",
           "named": true
         },
@@ -6480,6 +6511,10 @@
         },
         {
           "type": "namespace_definition",
+          "named": true
+        },
+        {
+          "type": "objc_forward_declaration",
           "named": true
         },
         {
@@ -7798,6 +7833,10 @@
           "named": true
         },
         {
+          "type": "objc_forward_declaration",
+          "named": true
+        },
+        {
           "type": "preproc_call",
           "named": true
         },
@@ -8764,6 +8803,14 @@
   },
   {
     "type": "?",
+    "named": false
+  },
+  {
+    "type": "@class",
+    "named": false
+  },
+  {
+    "type": "@protocol",
     "named": false
   },
   {

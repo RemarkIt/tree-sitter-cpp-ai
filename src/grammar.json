@@ -71,6 +71,10 @@
           "name": "uncertain_macro_invocation"
         },
         {
+          "type": "SYMBOL",
+          "name": "objc_forward_declaration"
+        },
+        {
           "type": "ALIAS",
           "content": {
             "type": "SYMBOL",
@@ -13355,6 +13359,53 @@
             "type": "SYMBOL",
             "name": "argument_list"
           }
+        }
+      ]
+    },
+    "objc_forward_declaration": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "@class"
+            },
+            {
+              "type": "STRING",
+              "value": "@protocol"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "identifier"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": ","
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "identifier"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "STRING",
+          "value": ";"
         }
       ]
     },

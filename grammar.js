@@ -344,6 +344,7 @@ module.exports = grammar(C, {
     _top_level_item: ($, original) => choice(
       ...original.members.filter((member) => member.content?.name != '_old_style_function_definition'),
       $.uncertain_macro_invocation,
+      $.objc_forward_declaration,
       alias($.macro_header_declaration, $.declaration),
       $.namespace_definition,
       $.concept_definition,
@@ -464,6 +465,14 @@ module.exports = grammar(C, {
       )),
       optional(','),
       '}',
+    ),
+
+    // Objective-C++ headers declare classes and protocols ahead, as in `@class NSView;` inside
+    // `#ifdef __OBJC__`. `@` begins no C++ token, so these never compete with C++ readings.
+    objc_forward_declaration: $ => seq(
+      choice('@class', '@protocol'),
+      commaSep1($.identifier),
+      ';',
     ),
 
     // Types
