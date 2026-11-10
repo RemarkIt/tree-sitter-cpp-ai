@@ -2417,3 +2417,63 @@ class A {
               (type_identifier)
               (identifier)))
           (type_qualifier))))))
+
+==================
+Annotation calls and macro types at a declaration start keep their readings
+==================
+_Success_(true)
+void Report(DWORD err);
+EXPORT(int) f(int x);
+EXPORT(int) g(int x) const;
+DECLARE(Name) h(int x) {}
+---
+(translation_unit
+  (uncertain_macro_invocation
+    (identifier)
+    (argument_list
+      (true)))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier)))))
+  (declaration
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (type_descriptor
+          (primitive_type))))
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))))
+  (declaration
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (type_descriptor
+          (primitive_type))))
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (type_qualifier)))
+  (function_definition
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (identifier)))
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement)))

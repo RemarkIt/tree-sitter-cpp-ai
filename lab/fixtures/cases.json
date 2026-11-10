@@ -549,6 +549,57 @@
         {"name": "Pair", "owner": ["Pair"], "return_type": null, "source": "VIS explicit Pair(int v) noexcept : a(v), b(v) {}"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "annotation-call-lines",
+      "family": "declarations",
+      "required": true,
+      "file": "annotation_call_lines.cpp",
+      "symbols": [
+        {
+          "name": "first",
+          "definition": false,
+          "return_type": "int",
+          "source": "ANNOT(true)\nint first(T value);"
+        },
+        {
+          "name": "first_body",
+          "return_type": "int",
+          "source": "ANNOT(true)\nint first_body(T value) { return 0; }"
+        },
+        {
+          "name": "second",
+          "definition": false,
+          "return_type": "int",
+          "source": "POST(x) WHEN(a, b) int second(int hr);"
+        },
+        {
+          "name": "second_wrapped",
+          "definition": false,
+          "return_type": "int",
+          "source": "POST(x) WHEN(a, b)\nint second_wrapped(int hr);"
+        },
+        {
+          "name": "third",
+          "return_type": "void",
+          "source": "inline IRQL(2)\nvoid third(int x) {}"
+        },
+        {
+          "name": "fourth",
+          "return_type": "int",
+          "source": "ANNOT(true)\nHOTWORD\n__declspec(noinline) inline int fourth(int a) { return a; }"
+        },
+        {
+          "name": "fifth",
+          "return_type": "int",
+          "source": "ANNOT(true)\nint\n    fifth(T value) { return 0; }"
+        },
+        {
+          "name": "after",
+          "return_type": "int",
+          "source": "int after(int x) { return x; }"
+        }
+      ]
     }
   ]
 }

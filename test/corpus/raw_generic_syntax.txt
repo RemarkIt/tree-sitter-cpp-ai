@@ -1824,3 +1824,112 @@ class unique_ptr {
               (argument_list
                 (pointer_expression
                   (this))))))))))
+
+==================
+Annotation calls on their own line after a template header or specifier
+==================
+template <FailureType T>
+_Success_(true)
+void ReportFailure(DWORD err);
+
+_Post_satisfies_(return == hr) _When_(FAILED(hr), _Analysis_noreturn_)
+int Check(int hr);
+
+inline _IRQL_requires_min_(DISPATCH_LEVEL)
+void __stdcall Release(int lock) {}
+
+template <FailureType T>
+_Success_(true)
+_Translates_last_error_to_HRESULT_
+__declspec(noinline) inline HRESULT ReportLastError(int a) {}
+
+template <typename T>
+WI_NODISCARD_REASON("unregistered when destroyed")
+unique_cookie
+    register_server(GUID const& guid) {}
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (parameter_declaration
+        (type_identifier)
+        (identifier)))
+    (declaration
+      (uncertain_specifier
+        (identifier)
+        (uncertain_arguments))
+      (primitive_type)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (identifier))))))
+  (declaration
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))))
+  (function_definition
+    (storage_class_specifier)
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (primitive_type)
+    (ms_call_modifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement))
+  (template_declaration
+    (template_parameter_list
+      (parameter_declaration
+        (type_identifier)
+        (identifier)))
+    (function_definition
+      (uncertain_specifier
+        (identifier)
+        (uncertain_arguments))
+      (uncertain_specifier
+        (identifier))
+      (ms_declspec_modifier
+        (identifier))
+      (storage_class_specifier)
+      (type_identifier)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (primitive_type)
+            (identifier))))
+      (compound_statement)))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (uncertain_specifier
+        (identifier)
+        (uncertain_arguments))
+      (type_identifier)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (type_qualifier)
+            (reference_declarator
+              (identifier)))))
+      (compound_statement))))
