@@ -7985,6 +7985,10 @@
         {
           "type": "type_qualifier",
           "named": true
+        },
+        {
+          "type": "uncertain_specifier",
+          "named": true
         }
       ]
     }
@@ -9327,6 +9331,10 @@
   {
     "type": "raw_string_delimiter",
     "named": true
+  },
+  {
+    "type": "ref",
+    "named": false
   },
   {
     "type": "register",

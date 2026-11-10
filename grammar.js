@@ -243,6 +243,9 @@ module.exports = grammar(C, {
     // `interface` in `interface __declspec(uuid(...)) I : public IUnknown`: a macro standing for a
     // class key, certified by the declspecs and then a base clause or member body after the name.
     $._class_key_macro,
+    // C++/CX `ref` in `ref new T(...)`, certified by the `new` after it, so `ref` stays a name
+    // everywhere else.
+    $._ref_new,
   ],
 
   extras: ($, original) => original.concat([
@@ -697,6 +700,15 @@ module.exports = grammar(C, {
     // directly followed by `{`, and that block's own `;` proves it a member declaration list
     // rather than a braced initializer of an elaborated-type-specifier's plain declarator.
     _class_leading_uncertain_specifier: $ => alias($._class_leading_annotation, $.identifier),
+
+    // `typedef _Return_type_success_(true) void result;`: annotations before a typedef's type.
+    _type_definition_type: ($, original) => seq(
+      repeat(choice(
+        alias($._leading_uncertain_specifier_call, $.uncertain_specifier),
+        alias($._leading_uncertain_specifier, $.uncertain_specifier),
+      )),
+      original,
+    ),
 
     // Leading annotations may interleave with modifiers, so wherever a type can still begin the
     // scanner sees this token as valid and does not certify a declarator annotation instead.
@@ -1808,7 +1820,7 @@ module.exports = grammar(C, {
     )),
 
     new_expression: $ => prec.right(PREC.NEW, seq(
-      optional('::'),
+      optional(choice('::', alias($._ref_new, 'ref'))),
       'new',
       field('placement', optional($.argument_list)),
       field('type', $.type_specifier),

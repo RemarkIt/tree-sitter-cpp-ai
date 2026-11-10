@@ -3788,24 +3788,55 @@
         {
           "type": "REPEAT",
           "content": {
-            "type": "SYMBOL",
-            "name": "type_qualifier"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_leading_uncertain_specifier_call"
+                },
+                "named": true,
+                "value": "uncertain_specifier"
+              },
+              {
+                "type": "ALIAS",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "_leading_uncertain_specifier"
+                },
+                "named": true,
+                "value": "uncertain_specifier"
+              }
+            ]
           }
         },
         {
-          "type": "FIELD",
-          "name": "type",
-          "content": {
-            "type": "SYMBOL",
-            "name": "type_specifier"
-          }
-        },
-        {
-          "type": "REPEAT",
-          "content": {
-            "type": "SYMBOL",
-            "name": "type_qualifier"
-          }
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SYMBOL",
+                "name": "type_qualifier"
+              }
+            },
+            {
+              "type": "FIELD",
+              "name": "type",
+              "content": {
+                "type": "SYMBOL",
+                "name": "type_specifier"
+              }
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SYMBOL",
+                "name": "type_qualifier"
+              }
+            }
+          ]
         }
       ]
     },
@@ -18364,8 +18395,22 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "STRING",
-                "value": "::"
+                "type": "CHOICE",
+                "members": [
+                  {
+                    "type": "STRING",
+                    "value": "::"
+                  },
+                  {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_ref_new"
+                    },
+                    "named": false,
+                    "value": "ref"
+                  }
+                ]
               },
               {
                 "type": "BLANK"
@@ -22526,6 +22571,10 @@
     {
       "type": "SYMBOL",
       "name": "_class_key_macro"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_ref_new"
     }
   ],
   "inline": [

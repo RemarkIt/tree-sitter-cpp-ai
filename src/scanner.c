@@ -35,6 +35,7 @@ enum TokenType {
     UNCERTAIN_ARGUMENT_LIST,
     PARAMETER_LIST_PROBE,
     CLASS_KEY_MACRO,
+    REF_NEW,
 };
 
 /// Declarator suffix words read between a constructor's parameters and its initializer list.
@@ -996,7 +997,8 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
         if (!skip_trivia(lexer, &newline) || (newline && !qualified)) {
             return false;
         }
-        if (lexer->lookahead == '*' || lexer->lookahead == '&') {
+        if (lexer->lookahead == '*' || lexer->lookahead == '&' || lexer->lookahead == '^') {
+            // `^` declares a C++/CX handle like a pointer.
             advance(lexer);
             pointer = true;
             continue;
@@ -1039,11 +1041,17 @@ static bool constructor_or_annotation_call_follows(TSLexer *lexer) {
 static bool annotation_chain_follows(TSLexer *lexer) {
     bool non_parameter = false;
     bool newline = false;
+    bool after_call = true;
     Word word;
     for (unsigned words = 0; words <= MAX_SUFFIX_WORDS; words++) {
         if (!skip_trivia(lexer, &newline)) {
             return false;
         }
+        if (lexer->lookahead == '(' && after_call) {
+            // `M(R, Name)(params)`: the last call produced a function header.
+            return macro_header_follows(lexer, false);
+        }
+        after_call = false;
         if (lexer->lookahead == ':') {
             advance(lexer);
             return lexer->lookahead != ':';
@@ -1064,6 +1072,7 @@ static bool annotation_chain_follows(TSLexer *lexer) {
             if (!skip_balanced_arguments(lexer, &non_parameter)) {
                 return false;
             }
+            after_call = true;
             continue;
         }
         if (keyword || c == '\n' || c == '\r' || c == '/') {
@@ -2074,6 +2083,13 @@ static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, boo
     int32_t next = lexer->lookahead;
     bool plain = identifier && !word.non_ascii && next != '"' && next != '\'' && next != '\\';
     lexer->mark_end(lexer);
+    if (valid_symbols[REF_NEW] && word_is(&word, "ref") && is_horizontal_space(next)) {
+        // C++/CX `ref new T(...)`; any other `ref` is a name.
+        skip_horizontal_space(lexer);
+        Word after;
+        lexer->result_symbol = read_word(lexer, &after) && word_is(&after, "new") ? REF_NEW : IDENTIFIER;
+        return lexer->result_symbol == REF_NEW || plain;
+    }
     if (certify && scan_certified_identifier(lexer, valid_symbols, newline_before)) {
         return true;
     }

@@ -3119,3 +3119,102 @@ bool f(int a, int b)
           (binary_expression
             (identifier)
             (number_literal)))))))
+
+================================================================================
+C++/CX ref new, handle after an annotation, annotated typedef
+================================================================================
+
+Platform::String ^f(Platform::Exception ^e)
+{
+  return ref new Platform::String(L"x");
+}
+HRESULT g(_In_ Platform::Exception ^exception);
+typedef _Return_type_success_(true) void result;
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (qualified_identifier
+      (namespace_identifier)
+      (type_identifier))
+    (pointer_declarator
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (qualified_identifier
+              (namespace_identifier)
+              (type_identifier))
+            (pointer_declarator
+              (identifier))))))
+    (compound_statement
+      (return_statement
+        (new_expression
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (argument_list
+            (string_literal
+              (string_content)))))))
+  (declaration
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (pointer_declarator
+            (identifier))))))
+  (type_definition
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (primitive_type)
+    (type_identifier)))
+
+================================================================================
+Annotation chain ending in a macro-generated method header
+================================================================================
+
+template <typename T>
+MACRO _When_(p == nullptr, _Analysis_noreturn_)
+METHOD(RESULT T, FailFast_IfNull)
+(_Pre_maybenull_ T p)
+{
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (uncertain_specifier
+        (identifier))
+      (uncertain_specifier
+        (identifier)
+        (uncertain_arguments))
+      (function_declarator
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (identifier))
+            (parameter_declaration
+              (type_identifier))))
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (annotated_declarator
+              (uncertain_specifier
+                (identifier))
+              (identifier)))))
+      (compound_statement))))
