@@ -315,10 +315,12 @@ static inline bool is_raw_prefix(const Word *word) {
 
 /// From `(`, consume the balanced argument list through its matching `)`. Strings, raw
 /// strings, character literals, numbers and comments cannot unbalance the scan. Records whether
-/// an argument begins with a literal, which a parameter declaration never does.
-static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
+/// an argument holds what no parameter declaration can: a leading literal, or a member access
+/// `.` before any default value, as in `M(T, Name, Changed.raise)`.
+static bool skip_balanced_arguments(TSLexer *lexer, bool *non_parameter) {
     unsigned depth = 0;
     bool argument_start = false;
+    bool default_value = false;
     for (unsigned budget = MAX_INVOCATION_SCAN; budget > 0; --budget) {
         if (lexer->eof(lexer)) {
             return false;
@@ -327,6 +329,7 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
         if (c == '(' || c == '[' || c == '{') {
             depth++;
             argument_start = c == '(' && depth == 1;
+            default_value = default_value && !argument_start;
             advance(lexer);
         } else if (c == ')' || c == ']' || c == '}') {
             advance(lexer);
@@ -339,6 +342,7 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
         } else if (c == ',') {
             advance(lexer);
             argument_start = depth == 1;
+            default_value = default_value && !argument_start;
         } else if (c == '/') {
             bool newline = false;
             advance(lexer);
@@ -346,13 +350,13 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
                 argument_start = false;
             }
         } else if (c == '"' || c == '\'') {
-            *literal_argument = *literal_argument || argument_start;
+            *non_parameter = *non_parameter || argument_start;
             if (!skip_quoted(lexer)) {
                 return false;
             }
             argument_start = false;
         } else if (is_digit(c)) {
-            *literal_argument = *literal_argument || argument_start;
+            *non_parameter = *non_parameter || argument_start;
             int32_t previous = 0;
             while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'' ||
                    ((lexer->lookahead == '+' || lexer->lookahead == '-') &&
@@ -376,7 +380,18 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *literal_argument) {
             argument_start = false;
         } else if (c == '#') {
             return false;
+        } else if (c == '.' && depth == 1) {
+            advance(lexer);
+            if (lexer->lookahead == '.') {
+                while (lexer->lookahead == '.') {
+                    advance(lexer);
+                }
+            } else if (!default_value) {
+                *non_parameter = true;
+            }
+            argument_start = false;
         } else {
+            default_value = default_value || (c == '=' && depth == 1);
             advance(lexer);
             argument_start = false;
         }
@@ -434,8 +449,8 @@ typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE } MacroShape;
 static bool constructor_annotation_follows(TSLexer *lexer) {
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
-        bool literal_argument = false;
-        if (!skip_balanced_arguments(lexer, &literal_argument)) {
+        bool non_parameter = false;
+        if (!skip_balanced_arguments(lexer, &non_parameter)) {
             return false;
         }
     }
@@ -462,8 +477,8 @@ static bool constructor_annotation_follows(TSLexer *lexer) {
 /// list. It is a statement-like invocation when nothing can continue an expression or
 /// declarator, and a type when a declarator follows on the same line.
 static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible, bool expression_possible) {
-    bool literal_argument = false;
-    if (!skip_balanced_arguments(lexer, &literal_argument)) {
+    bool non_parameter = false;
+    if (!skip_balanced_arguments(lexer, &non_parameter)) {
         return NOT_MACRO;
     }
     bool newline = false;
@@ -477,13 +492,13 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
     if (c == '}') {
         return !initializer_possible || !braces_close_initializer(lexer) ? MACRO_INVOCATION : NOT_MACRO;
     }
-    // A parameter list never begins with a literal, so `A("x") {` and member-level `A(T, 0);`
-    // cannot be constructor declarations.
+    // No parameter holds a leading literal or a member access, so `A("x") {` and member-level
+    // `A(T, 0);` or `A(T, x.y);` cannot be constructor declarations.
     if (c == '{') {
-        return literal_argument ? MACRO_INVOCATION : NOT_MACRO;
+        return non_parameter ? MACRO_INVOCATION : NOT_MACRO;
     }
     if (c == ';') {
-        return literal_argument && !expression_possible ? MACRO_INVOCATION : NOT_MACRO;
+        return non_parameter && !expression_possible ? MACRO_INVOCATION : NOT_MACRO;
     }
     Word word;
     if (!newline) {
@@ -516,9 +531,9 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
 /// After a class key and callee `A` (consumed) at `(`: `A(...) Name` is an annotation call before
 /// the class name, since an elaborated type's declarator is never followed by a name.
 static bool class_annotation_follows(TSLexer *lexer) {
-    bool literal_argument = false;
+    bool non_parameter = false;
     bool newline = false;
-    if (!skip_balanced_arguments(lexer, &literal_argument) || !skip_trivia(lexer, &newline)) {
+    if (!skip_balanced_arguments(lexer, &non_parameter) || !skip_trivia(lexer, &newline)) {
         return false;
     }
     Word word;
@@ -1100,8 +1115,8 @@ static bool function_suffix_follows(TSLexer *lexer) {
     for (unsigned count = 0; count < MAX_FUNCTION_SUFFIX_ANNOTATIONS; count++) {
         skip_horizontal_space(lexer);
         if (lexer->lookahead == '(') {
-            bool literal_argument = false;
-            if (!skip_balanced_arguments(lexer, &literal_argument)) {
+            bool non_parameter = false;
+            if (!skip_balanced_arguments(lexer, &non_parameter)) {
                 return false;
             }
             bare_words = 0;
@@ -1236,9 +1251,9 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
         if (valid_symbols[JUXTAPOSED_CALLEE]) {
             // After a call expression nothing ordinary can begin with a word, so `A(x) B(y)` juxtaposes
             // `B(y)` once its arguments are balanced.
-            bool literal_argument = false;
+            bool non_parameter = false;
             lexer->result_symbol = JUXTAPOSED_CALLEE;
-            return skip_balanced_arguments(lexer, &literal_argument);
+            return skip_balanced_arguments(lexer, &non_parameter);
         }
         if (valid_symbols[CLASS_ANNOTATION_CALLEE]) {
             lexer->result_symbol = CLASS_ANNOTATION_CALLEE;

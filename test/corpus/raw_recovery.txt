@@ -1272,3 +1272,43 @@ void f() {
         (call_expression
           (identifier)
           (argument_list))))))
+
+==================
+Member macro calls with member access arguments
+==================
+struct CommandPalette {
+    WINRT_OBSERVABLE_PROPERTY(winrt::hstring, NoMatchesText, PropertyChanged.raise);
+    WINRT_OBSERVABLE_PROPERTY(Editor::ViewModel, ViewModel, PropertyChanged.raise, nullptr);
+    void Refresh();
+};
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (uncertain_macro_invocation
+        (identifier)
+        (argument_list
+          (qualified_identifier
+            (namespace_identifier)
+            (identifier))
+          (identifier)
+          (field_expression
+            (identifier)
+            (field_identifier))))
+      (uncertain_macro_invocation
+        (identifier)
+        (argument_list
+          (qualified_identifier
+            (namespace_identifier)
+            (identifier))
+          (identifier)
+          (field_expression
+            (identifier)
+            (field_identifier))
+          (null)))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list))))))

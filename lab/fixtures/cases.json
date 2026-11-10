@@ -356,6 +356,11 @@
       {"name": "value", "kind": "variable", "owner": ["Resource"], "source": "int value;"},
       {"name": "assign", "owner": ["Resource"], "return_type": "void", "source": "void assign(const Resource& other) {\n        operator=(other);\n    }"},
       {"name": "allocate", "owner": ["Resource"], "return_type": "void*", "source": "static void* __stdcall allocate(int size) { return 0; }"}
+    ]},
+    {"id": "member-macro-member-access", "family": "annotation", "required": true, "file": "member_macro_access.cpp", "symbols": [
+      {"name": "raise", "kind": "variable", "owner": ["Event"], "source": "int raise;"},
+      {"name": "Changed", "kind": "variable", "owner": ["Model"], "source": "Event Changed;"},
+      {"name": "count", "owner": ["Model"], "source": "int count() const { return 1; }"}
     ]}
   ]
 }

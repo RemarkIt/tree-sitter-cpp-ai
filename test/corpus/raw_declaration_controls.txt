@@ -883,3 +883,73 @@ void* allocate(int size);
           (parameter_declaration
             (primitive_type)
             (identifier)))))))
+
+==================
+Parameters with member access defaults and ellipses stay declarations
+==================
+struct Widget {
+    Widget(int size, const char* name = config.name);
+    void draw(int x, ...);
+    explicit Widget(Options options);
+};
+void f() {
+    REGISTER(handler.run);
+    g(a.b, c);
+}
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (declaration
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier))
+            (optional_parameter_declaration
+              (type_qualifier)
+              (primitive_type)
+              (pointer_declarator
+                (identifier))
+              (field_expression
+                (identifier)
+                (field_identifier))))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))
+      (declaration
+        (explicit_function_specifier)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (identifier)))))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (field_expression
+              (identifier)
+              (field_identifier)))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (field_expression
+              (identifier)
+              (field_identifier))
+            (identifier)))))))
