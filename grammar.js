@@ -1056,9 +1056,8 @@ module.exports = grammar(C, {
         /x[0-9a-fA-F]{1,4}/,
         /u[0-9a-fA-F]{4}/,
         /U[0-9a-fA-F]{8}/,
-        'x',
-        'u',
-        'U',
+        // A pattern, not word literals: identifier-shaped literals must all be scanner keywords.
+        /[xuU]/,
       ),
     ))),
 

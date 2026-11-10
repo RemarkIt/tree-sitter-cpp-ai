@@ -12550,16 +12550,8 @@
                   "value": "U[0-9a-fA-F]{8}"
                 },
                 {
-                  "type": "STRING",
-                  "value": "x"
-                },
-                {
-                  "type": "STRING",
-                  "value": "u"
-                },
-                {
-                  "type": "STRING",
-                  "value": "U"
+                  "type": "PATTERN",
+                  "value": "[xuU]"
                 }
               ]
             }
