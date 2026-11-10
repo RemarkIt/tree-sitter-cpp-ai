@@ -323,6 +323,13 @@
       {"name": "onTimeout", "owner": ["Session"], "return_type": "void", "source": "void onTimeout() {}"},
       {"name": "finished", "owner": ["Session"], "definition": false, "return_type": "void", "source": "void finished();"},
       {"name": "count", "owner": ["Session"], "return_type": "int", "source": "int count() { return 2; }"}
+    ]},
+    {"id": "pointer-type-arguments", "family": "expression-macros", "required": true, "file": "pointer_type_arguments.cpp", "symbols": [
+      {"name": "parse", "owner": ["json"], "definition": false, "return_type": "int", "source": "int parse(const char *text);"},
+      {"name": "check_parse", "return_type": "void", "source": "void check_parse() {\n    CHECK_THROWS_AS(json::parse(\"x\"), json::parse_error&);\n    int after_parse = 1;\n}"},
+      {"name": "after_parse", "kind": "variable", "owner": ["check_parse"], "source": "int after_parse = 1;"},
+      {"name": "check_message", "return_type": "void", "source": "void check_message() {\n    CHECK_THROWS_WITH_AS(json::parse(\"y\"), \"bad input\", json::parse_error*);\n    int after_message = 2;\n}"},
+      {"name": "after_message", "kind": "variable", "owner": ["check_message"], "source": "int after_message = 2;"}
     ]}
   ]
 }

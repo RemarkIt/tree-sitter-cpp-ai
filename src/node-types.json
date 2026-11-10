@@ -857,6 +857,10 @@
         {
           "type": "type_descriptor",
           "named": true
+        },
+        {
+          "type": "uncertain_type_argument",
+          "named": true
         }
       ]
     }
@@ -1377,6 +1381,10 @@
         },
         {
           "type": "type_descriptor",
+          "named": true
+        },
+        {
+          "type": "uncertain_type_argument",
           "named": true
         }
       ]
@@ -8002,6 +8010,22 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "uncertain_type_argument",
+    "named": true,
+    "fields": {
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {

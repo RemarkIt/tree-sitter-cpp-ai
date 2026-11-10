@@ -1830,6 +1830,7 @@ module.exports = grammar(C, {
         alias($._keyword_type_argument, $.type_descriptor),
         alias($._sized_type_argument, $.type_descriptor),
         alias($._qualified_type_argument, $.type_descriptor),
+        $.uncertain_type_argument,
       );
       return seq(
         '(',
@@ -1873,6 +1874,17 @@ module.exports = grammar(C, {
       repeat($.type_qualifier),
       field('declarator', optional(choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
     ))),
+
+    // Macro arguments such as `CHECK_THROWS_AS(f(), json::parse_error&)`: no expression ends
+    // with `*`, `&` or `&&`, so the argument is a pointer or reference type. Its name keeps the
+    // expression shape it was read with, since the decision falls after the name: a type path
+    // forked at the name would compete with template readings for parse versions. A second `*`
+    // stays a dereference, and a trailing cv-qualifier would compete with `this const` of an
+    // explicit object parameter. Like other type arguments, any ordinary reading wins.
+    uncertain_type_argument: $ => prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
+      field('type', $.expression),
+      repeat1(choice('*', '&', '&&')),
+    )),
 
     // Macro arguments such as `va_arg(ap, unsigned long)`. Reserved size modifiers cannot be
     // read as names, and like other type arguments any ordinary reading wins over this one.

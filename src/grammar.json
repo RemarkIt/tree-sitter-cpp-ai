@@ -10298,6 +10298,10 @@
                           },
                           "named": true,
                           "value": "type_descriptor"
+                        },
+                        {
+                          "type": "SYMBOL",
+                          "name": "uncertain_type_argument"
                         }
                       ]
                     },
@@ -10354,6 +10358,10 @@
                                     },
                                     "named": true,
                                     "value": "type_descriptor"
+                                  },
+                                  {
+                                    "type": "SYMBOL",
+                                    "name": "uncertain_type_argument"
                                   }
                                 ]
                               },
@@ -10424,6 +10432,10 @@
                                   },
                                   "named": true,
                                   "value": "type_descriptor"
+                                },
+                                {
+                                  "type": "SYMBOL",
+                                  "name": "uncertain_type_argument"
                                 }
                               ]
                             },
@@ -10480,6 +10492,10 @@
                                             },
                                             "named": true,
                                             "value": "type_descriptor"
+                                          },
+                                          {
+                                            "type": "SYMBOL",
+                                            "name": "uncertain_type_argument"
                                           }
                                         ]
                                       },
@@ -19421,6 +19437,43 @@
             }
           ]
         }
+      }
+    },
+    "uncertain_type_argument": {
+      "type": "PREC_DYNAMIC",
+      "value": -20,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "type",
+            "content": {
+              "type": "SYMBOL",
+              "name": "expression"
+            }
+          },
+          {
+            "type": "REPEAT1",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "*"
+                },
+                {
+                  "type": "STRING",
+                  "value": "&"
+                },
+                {
+                  "type": "STRING",
+                  "value": "&&"
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "_sized_type_argument": {

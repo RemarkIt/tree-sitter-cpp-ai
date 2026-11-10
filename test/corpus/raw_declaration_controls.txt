@@ -367,3 +367,87 @@ done:
         (statement_identifier)
         (return_statement
           (identifier))))))
+
+==================
+Arguments ending in operands keep expression readings
+==================
+void f() {
+    g(ns::a * b, ns::c & d, ns::e && f);
+    h(ns::x * (y), ns::z);
+    k(&ns::value, *ns::pointer);
+    CHECK(std::is_same<ns::A<x>, ns::B>::value);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (binary_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))
+              (identifier))
+            (binary_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))
+              (identifier))
+            (binary_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))
+              (identifier)))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (binary_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))
+              (parenthesized_expression
+                (identifier)))
+            (qualified_identifier
+              (namespace_identifier)
+              (identifier)))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (pointer_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier)))
+            (pointer_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (qualified_identifier
+              (namespace_identifier)
+              (qualified_identifier
+                (template_type
+                  (type_identifier)
+                  (template_argument_list
+                    (type_descriptor
+                      (qualified_identifier
+                        (namespace_identifier)
+                        (template_type
+                          (type_identifier)
+                          (template_argument_list
+                            (identifier)))))
+                    (type_descriptor
+                      (qualified_identifier
+                        (namespace_identifier)
+                        (type_identifier)))))
+                (identifier)))))))))

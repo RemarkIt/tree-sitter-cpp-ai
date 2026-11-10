@@ -959,3 +959,84 @@ Q_SIGNALS:
         (function_declarator
           (field_identifier)
           (parameter_list))))))
+
+==================
+Pointer and reference types as macro arguments
+==================
+void f() {
+    CHECK_THROWS_AS(json::parse(text), json::parse_error&);
+    CHECK_THROWS_AS(make(), std::bad_alloc&);
+    CHECK_THROWS_AS(make(), Error*);
+    CHECK_THROWS_AS(make(), std::vector<int>&&);
+}
+void declared(Foo&, ns::Bar*);
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (call_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))
+              (argument_list
+                (identifier)))
+            (uncertain_type_argument
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (call_expression
+              (identifier)
+              (argument_list))
+            (uncertain_type_argument
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (call_expression
+              (identifier)
+              (argument_list))
+            (uncertain_type_argument
+              (identifier)))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (call_expression
+              (identifier)
+              (argument_list))
+            (uncertain_type_argument
+              (qualified_identifier
+                (namespace_identifier)
+                (template_function
+                  (identifier)
+                  (template_argument_list
+                    (type_descriptor
+                      (primitive_type)))))))))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (abstract_reference_declarator))
+        (parameter_declaration
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (abstract_pointer_declarator))))))
