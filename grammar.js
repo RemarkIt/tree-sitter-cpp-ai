@@ -240,6 +240,9 @@ module.exports = grammar(C, {
     // Never produced: its validity marks where a parameter list may start, so such arguments are
     // never certified where a declarator's parameters could be read instead.
     $._parameter_list_probe,
+    // `interface` in `interface __declspec(uuid(...)) I : public IUnknown`: a macro standing for a
+    // class key, certified by the declspecs and then a base clause or member body after the name.
+    $._class_key_macro,
   ],
 
   extras: ($, original) => original.concat([
@@ -561,7 +564,8 @@ module.exports = grammar(C, {
     // with an associativity.
     _class_declaration: $ => seq(
       repeat(choice($.attribute_specifier, $.alignas_qualifier)),
-      optional($.ms_declspec_modifier),
+      // MSVC class heads may hold several, as in `class __declspec(empty_bases) __declspec(uuid(...)) C`.
+      repeat($.ms_declspec_modifier),
       repeat($.attribute_declaration),
       $._class_declaration_item,
     ),
@@ -615,10 +619,12 @@ module.exports = grammar(C, {
       $._class_declaration,
     ),
 
-    struct_specifier: $ => seq(
-      'struct',
-      $._class_declaration,
+    struct_specifier: $ => choice(
+      seq('struct', $._class_declaration),
+      seq(alias($._class_key_uncertain_specifier, $.uncertain_specifier), $._class_declaration),
     ),
+
+    _class_key_uncertain_specifier: $ => alias($._class_key_macro, $.identifier),
 
     _class_name: $ => prec.right(choice(
       $._type_identifier,

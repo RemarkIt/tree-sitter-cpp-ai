@@ -6393,15 +6393,38 @@
       ]
     },
     "struct_specifier": {
-      "type": "SEQ",
+      "type": "CHOICE",
       "members": [
         {
-          "type": "STRING",
-          "value": "struct"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "struct"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_class_declaration"
+            }
+          ]
         },
         {
-          "type": "SYMBOL",
-          "name": "_class_declaration"
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_class_key_uncertain_specifier"
+              },
+              "named": true,
+              "value": "uncertain_specifier"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_class_declaration"
+            }
+          ]
         }
       ]
     },
@@ -13585,16 +13608,11 @@
           }
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "ms_declspec_modifier"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "ms_declspec_modifier"
+          }
         },
         {
           "type": "REPEAT",
@@ -13885,6 +13903,15 @@
           "name": "_class_declaration"
         }
       ]
+    },
+    "_class_key_uncertain_specifier": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_class_key_macro"
+      },
+      "named": true,
+      "value": "identifier"
     },
     "_class_name": {
       "type": "PREC_RIGHT",
@@ -22467,6 +22494,10 @@
     {
       "type": "SYMBOL",
       "name": "_parameter_list_probe"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_class_key_macro"
     }
   ],
   "inline": [
