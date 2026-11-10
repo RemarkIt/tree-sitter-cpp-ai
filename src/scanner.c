@@ -830,6 +830,21 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
     }
 }
 
+/// At the `(` after a name that follows annotations: true when balanced parentheses are followed by
+/// a member initializer list's single `:`, which only a constructor declarator can end with, as in
+/// `FORCE_INLINE Ref(T *p) : ptr(p) {}`. A body alone stays unclaimed: `A B(...) {}` may still be a
+/// function `B` returning `A`.
+static bool constructor_initializers_follow(TSLexer *lexer) {
+    bool non_parameter = false;
+    bool newline = false;
+    if (!skip_balanced_arguments(lexer, &non_parameter) || !skip_trivia(lexer, &newline) ||
+        lexer->lookahead != ':') {
+        return false;
+    }
+    advance(lexer);
+    return lexer->lookahead != ':';
+}
+
 /// After `A` (already consumed): certify `A [B ...] [specifier keywords]` followed on one physical
 /// line by a keyword type, by a qualified or templated type and its declarator, or, after a
 /// specifier keyword, by any type name and its declarator. `A B` alone stays a type and its
@@ -899,6 +914,9 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
         }
         if (after_specifier) {
             skip_horizontal_space(lexer);
+            if (lexer->lookahead == '(') {
+                return constructor_initializers_follow(lexer);
+            }
             if (!is_identifier_start(lexer->lookahead)) {
                 return type_declarator_follows(lexer, false);
             }
@@ -920,6 +938,9 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
         skip_horizontal_space(lexer);
         if (lexer->lookahead == ':' || lexer->lookahead == '<') {
             return type_declarator_follows(lexer, true);
+        }
+        if (lexer->lookahead == '(') {
+            return constructor_initializers_follow(lexer);
         }
         plain_before = true;
     }

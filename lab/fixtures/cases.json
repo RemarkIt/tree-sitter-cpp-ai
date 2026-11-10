@@ -492,6 +492,22 @@
         {"name": "level", "owner": ["Logger"], "source": "int level() final NO_ANALYSIS { return 1; }"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "annotated-constructors",
+      "family": "annotation",
+      "required": true,
+      "file": "annotated_constructors.cpp",
+      "symbols": [
+        {"name": "x", "kind": "variable", "owner": ["Vec"], "source": "float x;"},
+        {"name": "y", "kind": "variable", "owner": ["Vec"], "source": "float y;"},
+        {"name": "Vec", "owner": ["Vec"], "return_type": null, "source": "NO_DEBUG_STEP constexpr Vec() : x(0.0f), y(0.0f) {}"},
+        {"name": "Vec", "owner": ["Vec"], "return_type": null, "source": "NO_DEBUG_STEP constexpr Vec(float a, float b) : x(a), y(b) {}"},
+        {"name": "value", "kind": "variable", "owner": ["Holder"], "source": "int* value;"},
+        {"name": "Holder", "owner": ["Holder"], "return_type": null, "source": "FORCE_INLINE Holder(int* p) :\n            value(p) {}"},
+        {"name": "Holder", "owner": ["Holder"], "return_type": null, "source": "FORCE_INLINE explicit Holder(int n) : value(nullptr) {}"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }

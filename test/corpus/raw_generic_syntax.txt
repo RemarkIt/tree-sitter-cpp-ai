@@ -1527,3 +1527,118 @@ class Logger : public Base {
           (virtual_specifier)
           (uncertain_specifier
             (identifier)))))))
+
+==================
+Leading annotations before constructors with member initializer lists
+==================
+template <class T> class Result {
+  T *_value;
+public:
+  _FORCE_INLINE_ Result(std::nullptr_t) :
+      _value(nullptr) {}
+  _FORCE_INLINE_ Result(const Ref<T> &p_ref) : _value(p_ref.ptr()) {}
+  IM_NODEBUGSTEP constexpr inline Result(float _x) : _value(_x) { }
+  ANNOT explicit Result(int p) : _value(p) {}
+  ANNOT constexpr Result() : _value(0) {}
+};
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (class_specifier
+      (type_identifier)
+      (field_declaration_list
+        (field_declaration
+          (type_identifier)
+          (pointer_declarator
+            (field_identifier)))
+        (access_specifier)
+        (function_definition
+          (uncertain_specifier
+            (identifier))
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (qualified_identifier
+                  (namespace_identifier)
+                  (type_identifier)))))
+          (field_initializer_list
+            (field_initializer
+              (field_identifier)
+              (argument_list
+                (null))))
+          (compound_statement))
+        (function_definition
+          (uncertain_specifier
+            (identifier))
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_qualifier)
+                (template_type
+                  (type_identifier)
+                  (template_argument_list
+                    (type_descriptor
+                      (type_identifier))))
+                (reference_declarator
+                  (identifier)))))
+          (field_initializer_list
+            (field_initializer
+              (field_identifier)
+              (argument_list
+                (call_expression
+                  (field_expression
+                    (identifier)
+                    (field_identifier))
+                  (argument_list)))))
+          (compound_statement))
+        (function_definition
+          (uncertain_specifier
+            (identifier))
+          (type_qualifier)
+          (storage_class_specifier)
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type)
+                (identifier))))
+          (field_initializer_list
+            (field_initializer
+              (field_identifier)
+              (argument_list
+                (identifier))))
+          (compound_statement))
+        (function_definition
+          (uncertain_specifier
+            (identifier))
+          (explicit_function_specifier)
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type)
+                (identifier))))
+          (field_initializer_list
+            (field_initializer
+              (field_identifier)
+              (argument_list
+                (identifier))))
+          (compound_statement))
+        (function_definition
+          (uncertain_specifier
+            (identifier))
+          (type_qualifier)
+          (function_declarator
+            (identifier)
+            (parameter_list))
+          (field_initializer_list
+            (field_initializer
+              (field_identifier)
+              (argument_list
+                (number_literal))))
+          (compound_statement))))))
