@@ -1242,7 +1242,9 @@ module.exports = grammar(C, {
     )),
 
     _function_postfix: $ => prec.right(choice(
-      repeat1($.virtual_specifier),
+      // An identifier after `override` or `final` is an unexpanded annotation, as in
+      // `void f() override LOCKS_EXCLUDED(mu);`, just as one after the parameters is.
+      seq(repeat1($.virtual_specifier), repeat(alias($._function_suffix_specifier, $.uncertain_specifier))),
       $.requires_clause,
     )),
 

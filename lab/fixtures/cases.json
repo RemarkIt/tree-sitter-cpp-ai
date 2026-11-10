@@ -479,6 +479,19 @@
         {"name": "p", "kind": "variable", "owner": ["scan"], "source": "int* p = (a = next(limit), &a);"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "virtual-suffix-annotations",
+      "family": "annotation",
+      "required": true,
+      "file": "virtual_suffix_annotations.cpp",
+      "symbols": [
+        {"name": "log", "owner": ["Base"], "return_type": "void", "source": "virtual void log(const char* text) {}"},
+        {"name": "level", "owner": ["Base"], "source": "virtual int level() { return 0; }"},
+        {"name": "log", "owner": ["Logger"], "return_type": "void", "source": "void log(const char* text) override FORMAT_CHECK(1, 2) {}"},
+        {"name": "level", "owner": ["Logger"], "source": "int level() final NO_ANALYSIS { return 1; }"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }

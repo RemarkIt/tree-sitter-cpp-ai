@@ -1463,3 +1463,67 @@ void c() {
                   (identifier)
                   (number_literal))
                 (identifier)))))))))
+
+==================
+Annotation macros after override and final
+==================
+class Logger : public Base {
+  virtual void logv(const char *f, va_list l, bool e) override _PRINTF_FORMAT_ATTRIBUTE_2_0;
+  void flush() final LOCKS_EXCLUDED(mu_);
+  void sync() override NO_THREAD_SAFETY_ANALYSIS {}
+  int f() override WI_NOEXCEPT;
+};
+---
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (base_class_clause
+      (access_specifier)
+      (type_identifier))
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_qualifier)
+              (primitive_type)
+              (pointer_declarator
+                (identifier)))
+            (parameter_declaration
+              (type_identifier)
+              (identifier))
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))
+          (virtual_specifier)
+          (uncertain_specifier
+            (identifier))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)
+          (virtual_specifier)
+          (uncertain_specifier
+            (identifier)
+            (argument_list
+              (identifier)))))
+      (function_definition
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)
+          (virtual_specifier)
+          (uncertain_specifier
+            (identifier)))
+        (compound_statement))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)
+          (virtual_specifier)
+          (uncertain_specifier
+            (identifier)))))))

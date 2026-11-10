@@ -16257,11 +16257,28 @@
         "type": "CHOICE",
         "members": [
           {
-            "type": "REPEAT1",
-            "content": {
-              "type": "SYMBOL",
-              "name": "virtual_specifier"
-            }
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "REPEAT1",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "virtual_specifier"
+                }
+              },
+              {
+                "type": "REPEAT",
+                "content": {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_function_suffix_specifier"
+                  },
+                  "named": true,
+                  "value": "uncertain_specifier"
+                }
+              }
+            ]
           },
           {
             "type": "SYMBOL",
