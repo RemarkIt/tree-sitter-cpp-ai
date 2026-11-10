@@ -58,6 +58,40 @@ Evidence tracks stay separate:
 Exit codes: `0` success, `1` candidate mismatch or regression, `2` invalid
 input, compiler-oracle disagreement or tooling failure.
 
+### Round check
+
+```sh
+.venv/bin/python lab/round.py check --name r34 --previous r33 [--timing]
+.venv/bin/python lab/round.py timing --name r34   # time the pinned build separately, update the verdict
+```
+
+One command per grammar change: build and refresh the committed generated
+sources (as `generated --write` does, because lab tests read them), then native
+tests followed by lab tests in the background while the gate and a census of
+every configured corpus run against the previous round's library, then optional
+timing against upstream. The build is pinned as
+`.cache/lab/rounds/<name>.dylib`, so the next round can name it with
+`--previous`. Corpora come from `.cache/lab/rounds/config.json`
+(`{"manifests": {"heldout": "/path/manifest.json"}, "timing": "heldout"}`) or
+repeated `--manifest NAME=PATH`, so private corpus paths never enter the
+repository. It prints about ten lines:
+
+- per corpus: error files, sites and bytes before → after, newly broken and
+  newly clean files, clean files whose tree changed, and declarations lost or
+  gained against the previous round. A declaration that moved or changed kind
+  is not lost; names that only appear when macros, keywords, annotations or
+  member initializers are misread count as `junk lost`.
+- the gate count, regressions and cases newly passing or failing against the
+  previous round's summary.
+
+Exit codes: `0` accept (all checks pass and some corpus count fell), `1` fail
+(build, native, lab tests, gate, timing or a newly broken file), `2` review
+(clean files changed, declarations lost, a count rose, or nothing improved),
+`3` the check could not run. Full evidence, including `summary.json`, the
+census reports and logs, stays in `.cache/lab/rounds/<name>/`; `tools.py
+reduce` and `diff` with the two pinned libraries turn a listed file into a
+reproducer.
+
 ## Fixtures
 
 [Fixtures](fixtures/) are self-contained, hand-written C/C++ sources. The
@@ -108,7 +142,8 @@ their upstream reading.
   and `test_syntax_census.py` cover manifest hashes and fixed denominators,
   declaration multiplicity and range deltas, timing aggregation with controlled
   clocks, parse-work budgets and incremental/fresh agreement; `test_tools.py`
-  covers the investigation tools; `test_scanner_words.py` keeps the scanner's
+  covers the investigation tools; `test_round.py` covers the round verdict and
+  declaration matching; `test_scanner_words.py` keeps the scanner's
   word lists sorted for binary search and its `KEYWORDS` equal to the grammar's
   identifier-shaped literals, because the scanner returns every other word as an
   identifier. Acceptance timing uses real native parsing and excludes compiler,
