@@ -205,6 +205,12 @@ static inline void skip_horizontal_space(TSLexer *lexer) {
     }
 }
 
+/// `module` and `import` are keywords only at the start of a module or import declaration, so
+/// elsewhere they name things, as in `_In_ HMODULE module`.
+static inline bool is_contextual_name(const Word *word) {
+    return word_is(word, "module") || word_is(word, "import");
+}
+
 /// After `A` (already consumed): the next token continues the declarator, i.e. another
 /// identifier, `*` or `&`. A declarator name is never followed by these tokens.
 static bool declarator_annotation_follows(TSLexer *lexer) {
@@ -218,7 +224,7 @@ static bool declarator_annotation_follows(TSLexer *lexer) {
     if (!read_word(lexer, &word)) {
         return false;
     }
-    return !word_in(&word, KEYWORDS) || strcmp(word.text, "operator") == 0;
+    return !word_in(&word, KEYWORDS) || strcmp(word.text, "operator") == 0 || is_contextual_name(&word);
 }
 
 /// Consume a comment after its leading `/` has been consumed. Returns false if this `/` is not
@@ -994,7 +1000,7 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
         if (word_is(&word, "const") || word_is(&word, "volatile") || word_in(&word, CALLING_CONVENTIONS)) {
             continue;
         }
-        return !word_in(&word, KEYWORDS) || word_is(&word, "operator");
+        return !word_in(&word, KEYWORDS) || word_is(&word, "operator") || is_contextual_name(&word);
     }
 }
 
@@ -1748,7 +1754,7 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
 
 /// After `typename` (consumed): a dependent name, possibly qualified and templated, followed by `(`
 /// or `{` begins a functional cast such as `typename T::type(x)` or `typename T::type{}`.
-static bool dependent_cast_follows(TSLexer *lexer) {
+static bool dependent_cast_follows(TSLexer *lexer, bool braces_only) {
     Word word;
     skip_horizontal_space(lexer);
     if (lexer->lookahead == ':') {
@@ -1788,7 +1794,7 @@ static bool dependent_cast_follows(TSLexer *lexer) {
         advance(lexer);
         qualified = true;
     }
-    return qualified && (lexer->lookahead == '(' || lexer->lookahead == '{');
+    return qualified && (lexer->lookahead == '{' || (!braces_only && lexer->lookahead == '('));
 }
 
 /// After a word: the rest of an unnamed pointer to member, `::*` or `::B::*`, then cv-qualifiers and
@@ -1839,10 +1845,11 @@ static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, boo
     if (!read_word(lexer, &word)) {
         return false;
     }
-    if (word_is(&word, "typename") && valid_symbols[TYPENAME_CAST] && !valid_symbols[TEMPLATE_ARGUMENT_PROBE] &&
-        !valid_symbols[LEADING_ANNOTATION]) {
+    if (word_is(&word, "typename") && valid_symbols[TYPENAME_CAST] && !valid_symbols[TEMPLATE_ARGUMENT_PROBE]) {
+        // Where a declaration may start, `typename T::type(x);` declares `x`; only braces right
+        // after the name, which no declarator precedes, make it a cast.
         lexer->result_symbol = TYPENAME_CAST;
-        return dependent_cast_follows(lexer);
+        return dependent_cast_follows(lexer, valid_symbols[LEADING_ANNOTATION]);
     }
     if (word_in(&word, KEYWORDS)) {
         return false;
@@ -2040,8 +2047,10 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
             angles++;
             advance(lexer);
         } else if (depth == 1 && c == '>' && angles > 0) {
+            // A closed template-id ends a name, so a word right after it is juxtaposed; `&&` or
+            // `*` after it are operators, as in `is_same_v<A, B> && c`.
             angles--;
-            previous = OTHER;
+            previous = angles == 0 ? PLAIN_WORD : OTHER;
             advance(lexer);
         } else if (depth == 1 && c == '-') {
             advance(lexer);
@@ -2170,6 +2179,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
     }
     bool newline_before = false;
     bool space_before = false;
+    unsigned skipped = 0;
     for (;;) {
         if (lexer->lookahead == '\n' || lexer->lookahead == '\r') {
             newline_before = true;
@@ -2187,8 +2197,14 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
         }
         space_before = true;
         lexer->advance(lexer, true);
+        skipped++;
     }
     if (lexer->lookahead == '#') {
+        // A directive begins its line. After a token on the same line, as inside the string
+        // `"#ifdef X\n"`, a `#` never does; the column counts only the whitespace skipped here.
+        if (!newline_before && lexer->get_column(lexer) != skipped) {
+            return false;
+        }
         return conditional_tokens && scan_preproc_conditional(scanner, lexer, valid_symbols);
     }
     // A literal suffix is immediate, so after a space only an identifier can match the word.

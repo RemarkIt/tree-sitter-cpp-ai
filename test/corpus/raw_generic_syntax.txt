@@ -2441,3 +2441,156 @@ void f()
                 (namespace_identifier)
                 (identifier))
               (uncertain_arguments))))))))
+
+================================================================================
+Conditional operator in a preprocessor condition
+================================================================================
+
+#if defined(A) ? F(B | C) \
+    : F(D)
+int a;
+#endif
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (preproc_if
+    (conditional_expression
+      (preproc_defined
+        (identifier))
+      (call_expression
+        (identifier)
+        (argument_list
+          (binary_expression
+            (identifier)
+            (identifier))))
+      (call_expression
+        (identifier)
+        (argument_list
+          (identifier))))
+    (declaration
+      (primitive_type)
+      (identifier))))
+
+================================================================================
+Using-declaration naming a macro call
+================================================================================
+
+using n::M(_json);
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (using_declaration
+    (call_expression
+      (qualified_identifier
+        (namespace_identifier)
+        (identifier))
+      (argument_list
+        (identifier)))))
+
+================================================================================
+Dependent functional cast with braces inside an initializer list
+================================================================================
+
+template <typename D>
+D const p<D>::u{typename D::tag{}};
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (declaration
+      (type_identifier)
+      (type_qualifier)
+      (init_declarator
+        (qualified_identifier
+          (template_type
+            (type_identifier)
+            (template_argument_list
+              (type_descriptor
+                (type_identifier))))
+          (identifier))
+        (initializer_list
+          (compound_literal_expression
+            (dependent_type
+              (qualified_identifier
+                (namespace_identifier)
+                (type_identifier)))
+            (initializer_list)))))))
+
+================================================================================
+Directive text inside string literals
+================================================================================
+
+const char *s =
+    "#ifdef GL_ES\n"
+    "precision mediump float;\n"
+    "#endif\n";
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (type_qualifier)
+    (primitive_type)
+    (init_declarator
+      (pointer_declarator
+        (identifier))
+      (concatenated_string
+        (string_literal
+          (string_content)
+          (escape_sequence))
+        (string_literal
+          (string_content)
+          (escape_sequence))
+        (string_literal
+          (string_content)
+          (escape_sequence))))))
+
+================================================================================
+Parameter named module after an annotation
+================================================================================
+
+void f(_In_ HMODULE module);
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (annotated_declarator
+            (uncertain_specifier
+              (identifier))
+            (identifier)))))))
+
+================================================================================
+Template-id and name side by side in call arguments
+================================================================================
+
+void f()
+{
+  ASSERT_THROW(Queue<int> q(0), Error);
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (uncertain_arguments))))))

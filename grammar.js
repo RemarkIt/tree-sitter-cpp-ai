@@ -1058,6 +1058,8 @@ module.exports = grammar(C, {
     escape_sequence: _ => token(prec(1, seq(
       '\\',
       choice(
+        // A line splice before a CRLF line ending; LF alone already matches the next pattern.
+        '\r\n',
         /[^xuU]/,
         /\d{2,3}/,
         /x[0-9a-fA-F]{1,4}/,
@@ -1460,10 +1462,17 @@ module.exports = grammar(C, {
           $.identifier,
           $.qualified_identifier,
           $.splice_type_specifier,
+          // `using A::M(x);`: no name is followed by arguments, so `M` is an unexpanded macro.
+          alias($._using_macro_call, $.call_expression),
         ),
         optional('...'),
       )),
       ';',
+    ),
+
+    _using_macro_call: $ => seq(
+      field('function', choice($.identifier, $.qualified_identifier)),
+      field('arguments', $.argument_list),
     ),
 
     alias_declaration: $ => seq(
@@ -2082,6 +2091,20 @@ module.exports = grammar(C, {
         field('argument', $._preproc_expression),
       )),
     ),
+
+    _preproc_expression: ($, original) => choice(
+      original,
+      alias($.preproc_conditional_expression, $.conditional_expression),
+    ),
+
+    // `#if defined(X) ? A : B`, as in wil's partition checks.
+    preproc_conditional_expression: $ => prec.right(PREC.CONDITIONAL, seq(
+      field('condition', $._preproc_expression),
+      '?',
+      field('consequence', $._preproc_expression),
+      ':',
+      field('alternative', $._preproc_expression),
+    )),
 
     preproc_binary_expression: ($, original) => choice(
       original,

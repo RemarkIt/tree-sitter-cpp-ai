@@ -1,0 +1,20 @@
+================================================================================
+String literal with a line splice before a CRLF line ending
+================================================================================
+
+const wchar_t *s = L"a \
+b";
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (type_qualifier)
+    (type_identifier)
+    (init_declarator
+      (pointer_declarator
+        (identifier))
+      (string_literal
+        (string_content)
+        (escape_sequence)
+        (string_content)))))

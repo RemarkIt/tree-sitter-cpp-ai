@@ -2101,6 +2101,10 @@
           {
             "type": "expression",
             "named": true
+          },
+          {
+            "type": "preproc_defined",
+            "named": true
           }
         ]
       },
@@ -2110,6 +2114,10 @@
         "types": [
           {
             "type": "expression",
+            "named": true
+          },
+          {
+            "type": "preproc_defined",
             "named": true
           }
         ]
@@ -2124,6 +2132,10 @@
           },
           {
             "type": "expression",
+            "named": true
+          },
+          {
+            "type": "preproc_defined",
             "named": true
           }
         ]
@@ -5681,6 +5693,10 @@
             "named": true
           },
           {
+            "type": "conditional_expression",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
@@ -6205,6 +6221,10 @@
           },
           {
             "type": "char_literal",
+            "named": true
+          },
+          {
+            "type": "conditional_expression",
             "named": true
           },
           {
@@ -8376,6 +8396,10 @@
       "types": [
         {
           "type": "attribute_declaration",
+          "named": true
+        },
+        {
+          "type": "call_expression",
           "named": true
         },
         {
