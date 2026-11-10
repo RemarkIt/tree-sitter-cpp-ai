@@ -7389,7 +7389,7 @@
             "name": "consequence",
             "content": {
               "type": "SYMBOL",
-              "name": "statement"
+              "name": "_substatement"
             }
           },
           {
@@ -7420,7 +7420,7 @@
         },
         {
           "type": "SYMBOL",
-          "name": "statement"
+          "name": "_substatement"
         }
       ]
     },
@@ -7528,7 +7528,7 @@
           "name": "body",
           "content": {
             "type": "SYMBOL",
-            "name": "statement"
+            "name": "_substatement"
           }
         }
       ]
@@ -7545,7 +7545,7 @@
           "name": "body",
           "content": {
             "type": "SYMBOL",
-            "name": "statement"
+            "name": "_substatement"
           }
         },
         {
@@ -7590,7 +7590,7 @@
           "name": "body",
           "content": {
             "type": "SYMBOL",
-            "name": "statement"
+            "name": "_substatement"
           }
         }
       ]
@@ -16939,6 +16939,19 @@
         }
       ]
     },
+    "_substatement": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "declaration"
+        }
+      ]
+    },
     "for_range_loop": {
       "type": "SEQ",
       "members": [
@@ -16963,7 +16976,7 @@
           "name": "body",
           "content": {
             "type": "SYMBOL",
-            "name": "statement"
+            "name": "_substatement"
           }
         }
       ]

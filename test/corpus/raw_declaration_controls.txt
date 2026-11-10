@@ -1626,3 +1626,112 @@ template <class T> T* make() { return new T; }
         (return_statement
           (new_expression
             (type_identifier)))))))
+
+==================
+Expression substatements and block-level emit keep their reading
+==================
+void control(Item* item) {
+  if (x) f(a);
+  if (x) T(a);
+  if (x) a = b;
+  if (x) *p = 3;
+  if (x) return;
+  if (x) { emit changed(); }
+  for (int i = 0; i < n; ++i) total += i;
+  while (busy) item->tick();
+  do x++; while (x < 3);
+  emit changed();
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (pointer_declarator
+            (identifier)))))
+    (compound_statement
+      (if_statement
+        (condition_clause
+          (identifier))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (expression_statement
+          (assignment_expression
+            (identifier)
+            (identifier))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (expression_statement
+          (assignment_expression
+            (pointer_expression
+              (identifier))
+            (number_literal))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (return_statement))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (compound_statement
+          (declaration
+            (type_identifier)
+            (function_declarator
+              (identifier)
+              (parameter_list)))))
+      (for_statement
+        (declaration
+          (primitive_type)
+          (init_declarator
+            (identifier)
+            (number_literal)))
+        (binary_expression
+          (identifier)
+          (identifier))
+        (update_expression
+          (identifier))
+        (expression_statement
+          (assignment_expression
+            (identifier)
+            (identifier))))
+      (while_statement
+        (condition_clause
+          (identifier))
+        (expression_statement
+          (call_expression
+            (field_expression
+              (identifier)
+              (field_identifier))
+            (argument_list))))
+      (do_statement
+        (expression_statement
+          (update_expression
+            (identifier)))
+        (parenthesized_expression
+          (binary_expression
+            (identifier)
+            (number_literal))))
+      (declaration
+        (type_identifier)
+        (function_declarator
+          (identifier)
+          (parameter_list))))))

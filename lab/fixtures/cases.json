@@ -408,6 +408,22 @@
       {"name": "size_of", "return_type": "auto", "source": "auto size_of(U value) -> decltype(value.data(), value.size()) {\n    return value.size();\n}"},
       {"name": "measure", "source": "int measure(Text text) {\n    decltype(text.data(), text.size()) length = text.size();\n    return length;\n}"},
       {"name": "length", "kind": "variable", "owner": ["measure"], "source": "decltype(text.data(), text.size()) length = text.size();"}
-    ]}
+    ]},
+    {
+      "id": "substatement-declarations",
+      "family": "statements",
+      "required": true,
+      "file": "substatement_declarations.cpp",
+      "symbols": [
+        {"name": "total", "kind": "variable", "owner": ["Counter"], "source": "int total;"},
+        {"name": "tally", "source": "int tally(int n) {\n    int sum = 0;\n    for (int i = 0; i < n; ++i) int step = i;\n    if (n > 3) Counter extra{n};\n    else sum += n;\n    while (sum > 10) int half = sum / 2;\n    return sum;\n}"},
+        {"name": "sum", "kind": "variable", "owner": ["tally"], "source": "int sum = 0;"},
+        {"name": "i", "kind": "variable", "owner": ["tally"], "source": "int i = 0;"},
+        {"name": "step", "kind": "variable", "owner": ["tally"], "source": "int step = i;"},
+        {"name": "extra", "kind": "variable", "owner": ["tally"], "source": "Counter extra{n};"},
+        {"name": "half", "kind": "variable", "owner": ["tally"], "source": "int half = sum / 2;"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
+    }
   ]
 }

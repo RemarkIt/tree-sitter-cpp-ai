@@ -2591,6 +2591,10 @@
         "required": true,
         "types": [
           {
+            "type": "declaration",
+            "named": true
+          },
+          {
             "type": "statement",
             "named": true
           }
@@ -2616,6 +2620,10 @@
       "multiple": false,
       "required": true,
       "types": [
+        {
+          "type": "declaration",
+          "named": true
+        },
         {
           "type": "statement",
           "named": true
@@ -3506,6 +3514,10 @@
         "required": true,
         "types": [
           {
+            "type": "declaration",
+            "named": true
+          },
+          {
             "type": "statement",
             "named": true
           }
@@ -3595,6 +3607,10 @@
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "declaration",
+            "named": true
+          },
           {
             "type": "statement",
             "named": true
@@ -4165,6 +4181,10 @@
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "declaration",
+            "named": true
+          },
           {
             "type": "statement",
             "named": true
@@ -8387,6 +8407,10 @@
         "multiple": false,
         "required": true,
         "types": [
+          {
+            "type": "declaration",
+            "named": true
+          },
           {
             "type": "statement",
             "named": true

@@ -1422,16 +1422,32 @@ module.exports = grammar(C, {
     while_statement: $ => seq(
       'while',
       field('condition', $.condition_clause),
-      field('body', $.statement),
+      field('body', $._substatement),
     ),
 
     if_statement: $ => prec.right(seq(
       'if',
       optional('constexpr'),
       field('condition', $.condition_clause),
-      field('consequence', $.statement),
+      field('consequence', $._substatement),
       optional(field('alternative', $.else_clause)),
     )),
+
+    else_clause: $ => seq('else', $._substatement),
+
+    for_statement: ($, original) => ({
+      ...original,
+      members: original.members.map((e) => e.name !== 'body' ? e : field('body', $._substatement)),
+    }),
+
+    do_statement: ($, original) => ({
+      ...original,
+      members: original.members.map((e) => e.name !== 'body' ? e : field('body', $._substatement)),
+    }),
+
+    // A C++ substatement may be a declaration statement, as in `if (ok) emit changed(name);`.
+    // Ambiguous statements read as they do in a block: `a * b;` declares, `f(a);` calls.
+    _substatement: $ => choice($.statement, $.declaration),
 
     // Using prec(1) instead of prec.dynamic(1) causes issues with the
     // range loop's declaration specifiers if `int` is passed in, it'll
@@ -1442,7 +1458,7 @@ module.exports = grammar(C, {
       '(',
       $._for_range_loop_body,
       ')',
-      field('body', $.statement),
+      field('body', $._substatement),
     ),
     _for_range_loop_body: $ => seq(
       field('initializer', optional($.init_statement)),

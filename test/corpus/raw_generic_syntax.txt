@@ -1036,3 +1036,146 @@ Handle& Handle::operator=(Handle&&) = default;
             (type_identifier)
             (abstract_reference_declarator)))))
     (default_method_clause)))
+
+==================
+Declaration statements as substatements, read as in a block
+==================
+void notify(Item* item) {
+  if (ok) emit changed();
+  else emit failed(path.filename(), tr("x"));
+  for (auto *a : list) emit added(a);
+  for (int i = 0; i < n; ++i) emit step(i);
+  while (busy) emit tick(this);
+  do emit tick(this); while (busy);
+  if (x) int k = 3;
+  if (x) std::vector<int> v(3);
+  if (x) A::B c(d);
+  if (x) a * b;
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (pointer_declarator
+            (identifier)))))
+    (compound_statement
+      (if_statement
+        (condition_clause
+          (identifier))
+        (declaration
+          (type_identifier)
+          (function_declarator
+            (identifier)
+            (parameter_list)))
+        (else_clause
+          (declaration
+            (type_identifier)
+            (init_declarator
+              (identifier)
+              (argument_list
+                (call_expression
+                  (field_expression
+                    (identifier)
+                    (field_identifier))
+                  (argument_list))
+                (call_expression
+                  (identifier)
+                  (argument_list
+                    (string_literal
+                      (string_content)))))))))
+      (for_range_loop
+        (placeholder_type_specifier
+          (auto))
+        (pointer_declarator
+          (identifier))
+        (identifier)
+        (declaration
+          (type_identifier)
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier))))))
+      (for_statement
+        (declaration
+          (primitive_type)
+          (init_declarator
+            (identifier)
+            (number_literal)))
+        (binary_expression
+          (identifier)
+          (identifier))
+        (update_expression
+          (identifier))
+        (declaration
+          (type_identifier)
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier))))))
+      (while_statement
+        (condition_clause
+          (identifier))
+        (declaration
+          (type_identifier)
+          (init_declarator
+            (identifier)
+            (argument_list
+              (this)))))
+      (do_statement
+        (declaration
+          (type_identifier)
+          (init_declarator
+            (identifier)
+            (argument_list
+              (this))))
+        (parenthesized_expression
+          (identifier)))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (declaration
+          (primitive_type)
+          (init_declarator
+            (identifier)
+            (number_literal))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (declaration
+          (qualified_identifier
+            (namespace_identifier)
+            (template_type
+              (type_identifier)
+              (template_argument_list
+                (type_descriptor
+                  (primitive_type)))))
+          (init_declarator
+            (identifier)
+            (argument_list
+              (number_literal)))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (declaration
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier))
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier))))))
+      (if_statement
+        (condition_clause
+          (identifier))
+        (declaration
+          (type_identifier)
+          (pointer_declarator
+            (identifier)))))))
