@@ -2109,8 +2109,17 @@ module.exports = grammar(C, {
         ['->*', PREC.MULTIPLY],
       ];
 
+      // `>=` is one token wherever it is valid, as maximal munch makes it in C++, so it must not
+      // lose to the template-closing `>`, whose precedence makes `>` win over `>>` in `A<B<C>>`:
+      // `bool_constant<sizeof(U) >= 0>` compares inside the template arguments.
+      const greaterEqual = prec.left(PREC.RELATIONAL, seq(
+        field('left', $.expression),
+        field('operator', alias(token(prec(1, '>=')), '>=')),
+        field('right', $.expression),
+      ));
       return choice(
-        original,
+        ...original.members.filter((member) => !JSON.stringify(member).includes('"value":">="')),
+        greaterEqual,
         ...table.map(([operator, precedence]) => {
           return prec.left(precedence, seq(
             field('left', $.expression),

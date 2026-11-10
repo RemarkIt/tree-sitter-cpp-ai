@@ -3053,3 +3053,69 @@ guard acquire(PKSPIN_LOCK lock)
           (type_identifier)
           (identifier))))
     (compound_statement)))
+
+================================================================================
+Greater-or-equal inside template arguments
+================================================================================
+
+template <typename U>
+auto invoke(int) -> bool_constant<sizeof(U) >= 0>;
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (declaration
+      (placeholder_type_specifier
+        (auto))
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (primitive_type)))
+        (trailing_return_type
+          (type_descriptor
+            (template_type
+              (type_identifier)
+              (template_argument_list
+                (binary_expression
+                  (sizeof_expression
+                    (parenthesized_expression
+                      (identifier)))
+                  (number_literal))))))))))
+
+================================================================================
+Comparisons with less-than and greater-or-equal
+================================================================================
+
+bool f(int a, int b)
+{
+  return a < 32 || b >= 128;
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (return_statement
+        (binary_expression
+          (binary_expression
+            (identifier)
+            (number_literal))
+          (binary_expression
+            (identifier)
+            (number_literal)))))))
