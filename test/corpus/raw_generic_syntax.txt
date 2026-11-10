@@ -624,3 +624,108 @@ struct Resource {
                 (this))
               (pointer_expression
                 (this)))))))))
+
+==================
+Dependent functional casts and typename type arguments
+==================
+template <class View> auto convert(View s) {
+    auto it = typename View::iterator();
+    run(ptr, typename details::convertible<T*, R*>::type(), result);
+    CHECK_THROWS_AS(parse(token), typename Json::out_of_range&);
+    CHECK_THROWS_WITH_AS(get(), "missing", typename Json::out_of_range);
+    return typename View::string_t(s.data(), s.size());
+}
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (placeholder_type_specifier
+        (auto))
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (identifier))))
+      (compound_statement
+        (declaration
+          (placeholder_type_specifier
+            (auto))
+          (init_declarator
+            (identifier)
+            (call_expression
+              (dependent_type
+                (qualified_identifier
+                  (namespace_identifier)
+                  (type_identifier)))
+              (argument_list))))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)
+              (call_expression
+                (dependent_type
+                  (qualified_identifier
+                    (namespace_identifier)
+                    (qualified_identifier
+                      (template_type
+                        (type_identifier)
+                        (template_argument_list
+                          (type_descriptor
+                            (type_identifier)
+                            (abstract_pointer_declarator))
+                          (type_descriptor
+                            (type_identifier)
+                            (abstract_pointer_declarator))))
+                      (type_identifier))))
+                (argument_list))
+              (identifier))))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (call_expression
+                (identifier)
+                (argument_list
+                  (identifier)))
+              (type_descriptor
+                (dependent_type
+                  (qualified_identifier
+                    (namespace_identifier)
+                    (type_identifier)))
+                (abstract_reference_declarator)))))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (call_expression
+                (identifier)
+                (argument_list))
+              (string_literal
+                (string_content))
+              (type_descriptor
+                (dependent_type
+                  (qualified_identifier
+                    (namespace_identifier)
+                    (type_identifier)))))))
+        (return_statement
+          (call_expression
+            (dependent_type
+              (qualified_identifier
+                (namespace_identifier)
+                (type_identifier)))
+            (argument_list
+              (call_expression
+                (field_expression
+                  (identifier)
+                  (field_identifier))
+                (argument_list))
+              (call_expression
+                (field_expression
+                  (identifier)
+                  (field_identifier))
+                (argument_list)))))))))

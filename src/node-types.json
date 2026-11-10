@@ -1345,6 +1345,10 @@
         "required": false,
         "types": [
           {
+            "type": "dependent_type",
+            "named": true
+          },
+          {
             "type": "expression",
             "named": true
           },

@@ -9854,6 +9854,31 @@
               }
             ]
           }
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_typename_cast"
+            },
+            {
+              "type": "FIELD",
+              "name": "function",
+              "content": {
+                "type": "SYMBOL",
+                "name": "dependent_type"
+              }
+            },
+            {
+              "type": "FIELD",
+              "name": "arguments",
+              "content": {
+                "type": "SYMBOL",
+                "name": "argument_list"
+              }
+            }
+          ]
         }
       ]
     },
@@ -10394,6 +10419,15 @@
                           "value": "type_descriptor"
                         },
                         {
+                          "type": "ALIAS",
+                          "content": {
+                            "type": "SYMBOL",
+                            "name": "_dependent_type_argument"
+                          },
+                          "named": true,
+                          "value": "type_descriptor"
+                        },
+                        {
                           "type": "SYMBOL",
                           "name": "uncertain_type_argument"
                         }
@@ -10449,6 +10483,15 @@
                                     "content": {
                                       "type": "SYMBOL",
                                       "name": "_qualified_type_argument"
+                                    },
+                                    "named": true,
+                                    "value": "type_descriptor"
+                                  },
+                                  {
+                                    "type": "ALIAS",
+                                    "content": {
+                                      "type": "SYMBOL",
+                                      "name": "_dependent_type_argument"
                                     },
                                     "named": true,
                                     "value": "type_descriptor"
@@ -10528,6 +10571,15 @@
                                   "value": "type_descriptor"
                                 },
                                 {
+                                  "type": "ALIAS",
+                                  "content": {
+                                    "type": "SYMBOL",
+                                    "name": "_dependent_type_argument"
+                                  },
+                                  "named": true,
+                                  "value": "type_descriptor"
+                                },
+                                {
                                   "type": "SYMBOL",
                                   "name": "uncertain_type_argument"
                                 }
@@ -10583,6 +10635,15 @@
                                             "content": {
                                               "type": "SYMBOL",
                                               "name": "_qualified_type_argument"
+                                            },
+                                            "named": true,
+                                            "value": "type_descriptor"
+                                          },
+                                          {
+                                            "type": "ALIAS",
+                                            "content": {
+                                              "type": "SYMBOL",
+                                              "name": "_dependent_type_argument"
                                             },
                                             "named": true,
                                             "value": "type_descriptor"
@@ -16263,6 +16324,10 @@
                         "type": "SYMBOL",
                         "name": "expression"
                       }
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_template_argument_probe"
                     }
                   ]
                 },
@@ -16306,6 +16371,10 @@
                               "type": "SYMBOL",
                               "name": "expression"
                             }
+                          },
+                          {
+                            "type": "SYMBOL",
+                            "name": "_template_argument_probe"
                           }
                         ]
                       }
@@ -19738,6 +19807,48 @@
         }
       }
     },
+    "_dependent_type_argument": {
+      "type": "PREC_DYNAMIC",
+      "value": -20,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "FIELD",
+            "name": "type",
+            "content": {
+              "type": "SYMBOL",
+              "name": "dependent_type"
+            }
+          },
+          {
+            "type": "FIELD",
+            "name": "declarator",
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "SYMBOL",
+                      "name": "abstract_pointer_declarator"
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "abstract_reference_declarator"
+                    }
+                  ]
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "uncertain_type_argument": {
       "type": "PREC_DYNAMIC",
       "value": -20,
@@ -20979,6 +21090,10 @@
       "_sized_type_argument"
     ],
     [
+      "type_specifier",
+      "_dependent_type_argument"
+    ],
+    [
       "type_qualifier",
       "_qualified_type_argument"
     ],
@@ -21148,6 +21263,14 @@
     {
       "type": "SYMBOL",
       "name": "_annotation_arguments"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_typename_cast"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_template_argument_probe"
     },
     {
       "type": "SYMBOL",

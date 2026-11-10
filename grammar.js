@@ -219,6 +219,11 @@ module.exports = grammar(C, {
     // The balanced arguments of such a call, kept opaque: annotation languages such as SAL's
     // `_Post_satisfies_(return == 0)` are not C++ expressions.
     $._annotation_arguments,
+    // Zero-width, before `typename` in an expression: certified when the dependent name is followed
+    // by `(`, as in `typename T::type(x)`, so a functional cast never forks a type reading.
+    $._typename_cast,
+    // Never produced: its validity marks where a template argument, possibly a type, may start.
+    $._template_argument_probe,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -278,6 +283,7 @@ module.exports = grammar(C, {
     // Keyword-type macro arguments compete with unnamed parameters.
     [$.type_specifier, $._keyword_type_argument],
     [$.type_specifier, $._sized_type_argument],
+    [$.type_specifier, $._dependent_type_argument],
     [$.type_qualifier, $._qualified_type_argument],
     // `operator=(x)` calls an operator function where a typeless declaration may also start.
     [$.call_expression, $._constructor_name],
@@ -1274,6 +1280,7 @@ module.exports = grammar(C, {
         prec.dynamic(3, $.type_descriptor),
         prec.dynamic(2, alias($.type_parameter_pack_expansion, $.parameter_pack_expansion)),
         prec.dynamic(1, $.expression),
+        $._template_argument_probe,
       )),
       alias(token(prec(1, '>')), '>'),
     ),
@@ -1574,12 +1581,20 @@ module.exports = grammar(C, {
         field('arguments', $.argument_list),
       )),
       // `operator=(x)` and `operator""_s(x)` call an operator function by name. A declaration
-      // naming the operator still wins. A `typename T::type(x)` functional cast is left out: its
-      // fork at `typename` changed template-argument readings inside unrelated dependent types.
+      // naming the operator still wins.
       prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
         field('function', $.operator_name),
         field('arguments', $.argument_list),
       )),
+      // `typename T::type(x)` is a functional cast to a dependent type. The scanner certifies it
+      // at `typename` only where neither a declaration nor a template argument, which may be the
+      // function type `typename T::type(int)`, can start; a fork there changed template-argument
+      // readings in unrelated types.
+      seq(
+        $._typename_cast,
+        field('function', $.dependent_type),
+        field('arguments', $.argument_list),
+      ),
     ),
 
     co_await_expression: $ => prec.left(PREC.UNARY, seq(
@@ -1912,6 +1927,7 @@ module.exports = grammar(C, {
         alias($._keyword_type_argument, $.type_descriptor),
         alias($._sized_type_argument, $.type_descriptor),
         alias($._qualified_type_argument, $.type_descriptor),
+        alias($._dependent_type_argument, $.type_descriptor),
         $.uncertain_type_argument,
       );
       return seq(
@@ -1956,6 +1972,14 @@ module.exports = grammar(C, {
       repeat($.type_qualifier),
       field('declarator', optional(choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
     ))),
+
+    // Macro arguments such as `CHECK_THROWS_AS(f(), typename Json::out_of_range&)`: a `typename`
+    // that the scanner does not certify as a functional cast begins a type. Like other type
+    // arguments, any ordinary reading wins over this one.
+    _dependent_type_argument: $ => prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
+      field('type', $.dependent_type),
+      field('declarator', optional(choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
+    )),
 
     // Macro arguments such as `CHECK_THROWS_AS(f(), json::parse_error&)`: no expression ends
     // with `*`, `&` or `&&`, so the argument is a pointer or reference type. Its name keeps the

@@ -26,6 +26,8 @@ enum TokenType {
     SECTION_LABEL,
     LEADING_ANNOTATION_CALLEE,
     ANNOTATION_ARGUMENTS,
+    TYPENAME_CAST,
+    TEMPLATE_ARGUMENT_PROBE,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -1472,6 +1474,51 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
     return false;
 }
 
+/// After `typename` (consumed): a dependent name, possibly qualified and templated, followed by `(`
+/// begins a functional cast such as `typename T::type(x)`.
+static bool dependent_cast_follows(TSLexer *lexer) {
+    Word word;
+    skip_horizontal_space(lexer);
+    if (lexer->lookahead == ':') {
+        advance(lexer);
+        if (lexer->lookahead != ':') {
+            return false;
+        }
+        advance(lexer);
+    }
+    bool qualified = false;
+    for (;;) {
+        skip_horizontal_space(lexer);
+        if (!read_word(lexer, &word)) {
+            return false;
+        }
+        if (word_is(&word, "template")) {
+            skip_horizontal_space(lexer);
+            if (!read_word(lexer, &word)) {
+                return false;
+            }
+        }
+        if (word_in(&word, KEYWORDS) && !word_in(&word, TYPE_KEYWORDS)) {
+            return false;
+        }
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == '<' && !skip_template_arguments(lexer)) {
+            return false;
+        }
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead != ':') {
+            break;
+        }
+        advance(lexer);
+        if (lexer->lookahead != ':') {
+            return false;
+        }
+        advance(lexer);
+        qualified = true;
+    }
+    return qualified && lexer->lookahead == '(';
+}
+
 /// One identifier read serves every identifier-based token, because a scan cannot rewind. Where an
 /// identifier is valid, a word that is no certified token is returned as that identifier rather
 /// than read again by the lexer. Only words an ordinary identifier would end at qualify: ASCII,
@@ -1479,7 +1526,17 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
 static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, bool newline_before, bool certify,
                                   bool identifier) {
     Word word;
-    if (!read_word(lexer, &word) || word_in(&word, KEYWORDS)) {
+    // A certified functional cast is zero-width before its `typename`.
+    lexer->mark_end(lexer);
+    if (!read_word(lexer, &word)) {
+        return false;
+    }
+    if (word_is(&word, "typename") && valid_symbols[TYPENAME_CAST] && !valid_symbols[TEMPLATE_ARGUMENT_PROBE] &&
+        !valid_symbols[LEADING_ANNOTATION]) {
+        lexer->result_symbol = TYPENAME_CAST;
+        return dependent_cast_follows(lexer);
+    }
+    if (word_in(&word, KEYWORDS)) {
         return false;
     }
     int32_t next = lexer->lookahead;
@@ -1628,7 +1685,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
         return true;
     }
     bool conditional_tokens = valid_symbols[PREPROC_INLINE_CONDITIONAL];
-    if (!identifier_tokens && !conditional_tokens && !valid_symbols[IDENTIFIER]) {
+    if (!identifier_tokens && !conditional_tokens && !valid_symbols[IDENTIFIER] && !valid_symbols[TYPENAME_CAST]) {
         return false;
     }
     bool newline_before = false;
@@ -1656,7 +1713,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
     }
     // A literal suffix is immediate, so after a space only an identifier can match the word.
     bool identifier = valid_symbols[IDENTIFIER] && (space_before || !valid_symbols[LITERAL_SUFFIX]);
-    if (!identifier_tokens && !identifier) {
+    if (!identifier_tokens && !identifier && !valid_symbols[TYPENAME_CAST]) {
         return false;
     }
     return scan_identifier_token(lexer, valid_symbols, newline_before, identifier_tokens, identifier);

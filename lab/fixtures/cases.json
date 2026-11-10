@@ -388,6 +388,10 @@
       {"name": "~Provider", "owner": ["Provider"], "return_type": null, "source": "VISIBLE virtual ~Provider() {}"},
       {"name": "move", "owner": ["Provider"], "return_type": "void", "source": "void move(IN_PARAM Provider const& other, int x) { id = x; }"},
       {"name": "count", "owner": ["Provider"], "source": "NOINLINE_API VISIBLE\n    static int count(int value) { return value; }"}
+    ]},
+    {"id": "typename-expressions", "family": "expression-macros", "required": true, "file": "typename_expressions.cpp", "symbols": [
+      {"name": "convert", "source": "int convert(T value) {\n    T copy = typename Wrapper<T>::type(value);\n    CHECK_TYPE(value, typename Wrapper<T>::type&);\n    return 1;\n}"},
+      {"name": "copy", "kind": "variable", "owner": ["convert"], "source": "T copy = typename Wrapper<T>::type(value);"}
     ]}
   ]
 }
