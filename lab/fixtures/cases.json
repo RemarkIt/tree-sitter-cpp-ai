@@ -372,6 +372,11 @@
       {"name": "verify", "return_type": "bool", "source": "_Post_satisfies_(return == true) inline bool verify(int value) { return value == 1; }"},
       {"name": "copy", "definition": false, "source": "int copy(_In_reads_bytes_(size) const char* data, unsigned size);"},
       {"name": "debug", "definition": false, "source": "int debug(_When_(text != nullptr, size > 0) unsigned size, const char* text);"}
+    ]},
+    {"id": "statement-block-macros", "family": "statement-macros", "required": true, "file": "block_macros.cpp", "symbols": [
+      {"name": "release", "definition": false, "return_type": "void", "source": "void release(int handle);"},
+      {"name": "bind", "source": "int bind(int handle) {\n    SCOPE_EXIT {\n        release(handle);\n    };\n    int bound = handle + 1;\n    return bound;\n}"},
+      {"name": "bound", "kind": "variable", "owner": ["bind"], "source": "int bound = handle + 1;"}
     ]}
   ]
 }

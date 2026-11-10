@@ -684,8 +684,9 @@ static bool keyword_declaration_follows(TSLexer *lexer, Word *word, bool *specif
     }
 }
 
-/// From `{`, consume a balanced block, skipping literals and comments.
-static bool skip_balanced_block(TSLexer *lexer) {
+/// From `{`, consume a balanced block, skipping literals and comments. Records whether the block
+/// holds a `;` at its own depth, which only a block of statements or members does.
+static bool skip_balanced_block(TSLexer *lexer, bool *statements) {
     unsigned depth = 0;
     for (unsigned budget = MAX_INVOCATION_SCAN; budget > 0; --budget) {
         if (lexer->eof(lexer)) {
@@ -700,6 +701,9 @@ static bool skip_balanced_block(TSLexer *lexer) {
             if (--depth == 0) {
                 return true;
             }
+        } else if (c == ';') {
+            *statements = *statements || depth == 1;
+            advance(lexer);
         } else if (c == '/') {
             bool newline = false;
             advance(lexer);
@@ -918,12 +922,18 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
     }
     if (c == '{') {
         // `A {...}` followed by `;` or an operator is a compound literal expression; inside a
-        // possible braced initializer it may be an element.
+        // possible braced initializer it may be an element. A block holding statements is
+        // neither, so `A` takes it even before `;`, as in folly's `SCOPE_EXIT { f(); };`.
         bool after_block = false;
-        if (initializer_possible || !skip_balanced_block(lexer) || !skip_trivia(lexer, &after_block)) {
+        bool statements = false;
+        if (!skip_balanced_block(lexer, &statements) || !skip_trivia(lexer, &after_block)) {
             return false;
         }
-        return after_block && (lexer->lookahead == '#' || new_item_starts(lexer));
+        if (statements && lexer->lookahead == ';') {
+            return true;
+        }
+        return (statements || !initializer_possible) && after_block &&
+               (lexer->lookahead == '#' || new_item_starts(lexer));
     }
     if (!newline) {
         return false;

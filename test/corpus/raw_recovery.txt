@@ -1489,3 +1489,41 @@ struct socket_address {
             (parameter_declaration
               (primitive_type)
               (identifier))))))))
+
+==================
+Bare macros taking statement blocks
+==================
+void bind() {
+    SCOPE_EXIT {
+        freeaddrinfo(res);
+    };
+    SCOPE_FAIL { rollback(); };
+    next();
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (uncertain_macro_invocation
+        (identifier)
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list
+                (identifier))))))
+      (uncertain_macro_invocation
+        (identifier)
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list)))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))))
