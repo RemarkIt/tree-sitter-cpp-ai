@@ -2201,3 +2201,89 @@ _Post_satisfies_(x > 0) inline HRESULT
     (compound_statement
       (return_statement
         (number_literal)))))
+
+==================
+Annotation calls above macro-produced headers and before decltype parameters
+==================
+namespace details {
+    _Post_satisfies_(return == condition) _When_(condition, _Analysis_noreturn_)
+    __RFF_CONDITIONAL_METHOD(bool, FailFast_If)(__RFF_CONDITIONAL_FN_PARAMS bool condition) WI_NOEXCEPT;
+    _Post_satisfies_(return == handle) _When_(handle == INVALID_HANDLE_VALUE, _Analysis_noreturn_)
+    __RFF_CONDITIONAL_METHOD(HANDLE, FailFast_IfHandleInvalid)(__RFF_CONDITIONAL_FN_PARAMS HANDLE handle) WI_NOEXCEPT
+    {
+        return handle;
+    }
+}
+inline void SetFallback(_In_opt_ decltype(details::g_pfnCallback) callbackFunction)
+{
+}
+---
+(translation_unit
+  (namespace_definition
+    (namespace_identifier)
+    (declaration_list
+      (declaration
+        (uncertain_specifier
+          (identifier)
+          (uncertain_arguments))
+        (uncertain_specifier
+          (identifier)
+          (uncertain_arguments))
+        (function_declarator
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type))
+              (parameter_declaration
+                (type_identifier))))
+          (parameter_list
+            (parameter_declaration
+              (uncertain_specifier
+                (identifier))
+              (primitive_type)
+              (identifier)))
+          (uncertain_specifier
+            (identifier))))
+      (function_definition
+        (uncertain_specifier
+          (identifier)
+          (uncertain_arguments))
+        (uncertain_specifier
+          (identifier)
+          (uncertain_arguments))
+        (function_declarator
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier))
+              (parameter_declaration
+                (type_identifier))))
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (annotated_declarator
+                (uncertain_specifier
+                  (identifier))
+                (identifier))))
+          (uncertain_specifier
+            (identifier)))
+        (compound_statement
+          (return_statement
+            (identifier))))))
+  (function_definition
+    (storage_class_specifier)
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (decltype
+            (qualified_identifier
+              (namespace_identifier)
+              (identifier)))
+          (identifier))))
+    (compound_statement)))

@@ -470,23 +470,41 @@ static bool skip_balanced_block(TSLexer *lexer, bool *statements);
 /// with a suffix annotation `A` and never the declarator `A` of a function-like macro type `C(...)`.
 static bool call_annotation_keyword_follows(TSLexer *lexer, const Word *word);
 static bool type_declarator_follows(TSLexer *lexer, bool qualified);
+static bool macro_header_follows(TSLexer *lexer, bool expression_possible);
+
+/// At the `(` after a word: `M(a, b)(params) suffixes;`, a macro header as `macro_header_follows`
+/// describes, which may follow annotations.
+static bool macro_header_call_follows(TSLexer *lexer) {
+    bool non_parameter = false;
+    bool several = false;
+    bool newline = false;
+    return skip_balanced_list(lexer, &non_parameter, &several) && several && !non_parameter &&
+           skip_trivia(lexer, &newline) && lexer->lookahead == '(' && macro_header_follows(lexer, false);
+}
 
 /// Sets `initializers` when a member initializer list follows. With `annotation`, after `A(...) B(...)`
 /// instead sets it when a declaration follows, as in `_Post_(x) _When_(y, z) int f();`, which makes
 /// both calls annotations.
 static bool constructor_annotation_follows(TSLexer *lexer, bool *initializers, bool *annotation) {
     skip_horizontal_space(lexer);
+    bool header = false;
     if (lexer->lookahead == '(') {
         bool non_parameter = false;
-        if (!skip_balanced_arguments(lexer, &non_parameter)) {
+        if (!skip_balanced_list(lexer, &non_parameter, &header)) {
             return false;
         }
+        header = header && !non_parameter;
     }
     bool newline = false;
     if (!skip_trivia(lexer, &newline)) {
         return false;
     }
     int32_t c = lexer->lookahead;
+    if (annotation != NULL && c == '(' && header) {
+        // `A(...) M(T, Name)(params) suffixes;`: `M` produces the header after annotation `A`.
+        *annotation = macro_header_follows(lexer, false);
+        return false;
+    }
     if (annotation != NULL && is_identifier_start(c)) {
         Word word;
         if (!read_word(lexer, &word)) {
@@ -496,7 +514,9 @@ static bool constructor_annotation_follows(TSLexer *lexer, bool *initializers, b
             *annotation = call_annotation_keyword_follows(lexer, &word);
         } else {
             skip_horizontal_space(lexer);
-            *annotation = type_declarator_follows(lexer, lexer->lookahead == ':' || lexer->lookahead == '<');
+            *annotation = lexer->lookahead == '(' ? macro_header_call_follows(lexer)
+                                                  : type_declarator_follows(lexer, lexer->lookahead == ':' ||
+                                                                                       lexer->lookahead == '<');
         }
         return false;
     }
@@ -1081,6 +1101,18 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
         if (word_in(&word, SPECIFIER_KEYWORDS)) {
             after_specifier = true;
             continue;
+        }
+        if (word_is(&word, "decltype")) {
+            // `_In_opt_ decltype(x) name`: no type precedes `decltype`, but a concept precedes the
+            // placeholder `decltype(auto)`.
+            skip_horizontal_space(lexer);
+            if (lexer->lookahead != '(') {
+                return false;
+            }
+            advance(lexer);
+            skip_horizontal_space(lexer);
+            Word inner;
+            return !read_word(lexer, &inner) || !word_is(&inner, "auto");
         }
         if (word_is(&word, "__declspec")) {
             // `A __declspec(noinline) inline T f()`: like a specifier.

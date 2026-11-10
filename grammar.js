@@ -1050,6 +1050,8 @@ module.exports = grammar(C, {
       $._declaration_modifiers,
       $.explicit_function_specifier,
       alias($._leading_uncertain_specifier, $.uncertain_specifier),
+      // `_Post_satisfies_(x) _When_(y, z)` above a macro-produced header.
+      alias($._leading_uncertain_specifier_call, $.uncertain_specifier),
     ),
 
     operator_cast_definition: $ => seq(
