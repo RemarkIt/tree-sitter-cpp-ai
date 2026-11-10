@@ -1364,6 +1364,22 @@ typedef struct {
 /// Statement keywords whose header `(...)` must be followed by a body.
 static const char *const HEADER_KEYWORDS[] = {"for", "if", "switch", "while", NULL};
 
+/// After the group's `#endif`: true when the construct of the last branch continues there, with
+/// `else` or a handler after a statement, or with `{` after a function header or `try`.
+static bool construct_continues_after_group(TSLexer *lexer, bool open_function) {
+    skip_directive_line(lexer);
+    bool newline = false;
+    if (!skip_trivia(lexer, &newline)) {
+        return false;
+    }
+    if (lexer->lookahead == '{') {
+        return open_function;
+    }
+    Word word;
+    return read_word(lexer, &word) && (word_is(&word, "else") || word_is(&word, "catch") ||
+                                       word_is(&word, "__except") || word_is(&word, "__finally"));
+}
+
 /// From the line after an opening `#if`, scan its group to the matching `#endif`. Nested groups
 /// count only their first branch toward bracket balance, as a single preprocessing pass would.
 /// A branch ending with `else`, `do` or a header such as `if (...)` leaves its statement's body
@@ -1379,6 +1395,15 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
     bool header_keyword = false;
     int header_depth = -1;
     bool open_header = false;
+    // Function-header tracking at depth 0: words of the current item before its first `(`, whether
+    // the branch so far ends with `name(...)` and suffix words or with `try`, and whether some
+    // branch ended so. A header needs a declared type or specifier before its name, so a call
+    // statement such as `LOG()` never counts.
+    unsigned header_words = 0;
+    bool parameters_seen = false;
+    bool after_operator = false;
+    bool open_function = false;
+    bool open_function_branch = false;
     for (; budget > 0; --budget) {
         if (lexer->eof(lexer)) {
             return;
@@ -1404,6 +1429,9 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
                 if (nesting == 0) {
                     group->irregular = group->irregular || depth != 0 || open_header;
                     group->complete = true;
+                    open_function_branch = open_function_branch || open_function;
+                    group->irregular =
+                        group->irregular || construct_continues_after_group(lexer, open_function_branch);
                     return;
                 }
                 if (skipping == nesting) {
@@ -1415,6 +1443,10 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
                 if (nesting == 0) {
                     group->irregular = group->irregular || depth != 0 || open_header;
                     group->alternative = true;
+                    open_function_branch = open_function_branch || open_function;
+                    header_words = 0;
+                    parameters_seen = false;
+                    open_function = false;
                     depth = 0;
                     header_keyword = false;
                     header_depth = -1;
@@ -1456,6 +1488,16 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             if (counted && keyword && c == '(' && depth == 0) {
                 header_depth = depth;
             }
+            if (counted && depth == 0) {
+                if (c == '{') {
+                    header_words = 0;
+                    parameters_seen = false;
+                } else if (c == '(' && !parameters_seen) {
+                    parameters_seen = header_words >= 2;
+                }
+                after_operator = false;
+                open_function = false;
+            }
             depth += counted;
             advance(lexer);
         } else if (c == ')' || c == ']' || c == '}') {
@@ -1466,6 +1508,13 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             if (counted && c == ')' && depth == header_depth) {
                 open_header = true;
                 header_depth = -1;
+            }
+            if (counted && depth == 0) {
+                open_function = c == ')' && parameters_seen;
+                if (c == '}') {
+                    header_words = 0;
+                    parameters_seen = false;
+                }
             }
             advance(lexer);
         } else if (c == '"' || c == '\'') {
@@ -1487,6 +1536,16 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             if (counted && depth == 0) {
                 header_keyword = word_in(&word, HEADER_KEYWORDS) || (keyword && word_is(&word, "constexpr"));
                 open_header = word_is(&word, "else") || word_is(&word, "do");
+                if (word_is(&word, "try") || word_is(&word, "__try")) {
+                    open_function = true;
+                } else if (parameters_seen) {
+                    // Suffixes such as `const`, `noexcept` or an annotation macro keep it open.
+                    open_function = open_function && !word_in(&word, HEADER_KEYWORDS) && !word_is(&word, "return");
+                } else {
+                    header_words++;
+                    after_operator = word_is(&word, "operator");
+                    open_function = false;
+                }
             }
             if (lexer->lookahead == '"' && is_raw_prefix(&word)) {
                 skip_raw_string(lexer);
@@ -1494,6 +1553,18 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
                 skip_quoted(lexer);
             }
         } else {
+            if (counted && depth == 0) {
+                open_function = false;
+                if (c == ';') {
+                    header_words = 0;
+                    parameters_seen = false;
+                } else if (!parameters_seen && !after_operator && c != ':' && c != '<' && c != '>' && c != '*' &&
+                           c != '&' && c != '~' && c != ',') {
+                    // `=` or another operator before `(` makes the item an expression; an operator
+                    // function's name, as in `operator<=>`, does not.
+                    header_words = 0;
+                }
+            }
             advance(lexer);
             if (first) {
                 // Binary, member, separator and conditional operators only continue a construct.

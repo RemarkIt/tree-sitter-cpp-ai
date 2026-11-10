@@ -2594,3 +2594,116 @@ void f()
         (call_expression
           (identifier)
           (uncertain_arguments))))))
+
+================================================================================
+Function headers in conditional branches sharing one body
+================================================================================
+
+#if A
+int f(int a) noexcept
+#else
+bool g(int a) noexcept
+#endif
+{
+  return 1;
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (preproc_inactive_branch)
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (noexcept))
+    (preproc_inline_conditional)
+    (compound_statement
+      (return_statement
+        (number_literal)))))
+
+================================================================================
+Else after a conditional group holding the if statement
+================================================================================
+
+void f()
+{
+  if (a) {
+  }
+#ifdef B
+  if (b) {
+  }
+#endif
+  else {
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (if_statement
+        (condition_clause
+          (identifier))
+        (compound_statement))
+      (preproc_inline_conditional)
+      (if_statement
+        (condition_clause
+          (identifier))
+        (compound_statement)
+        (preproc_inline_conditional)
+        (else_clause
+          (compound_statement))))))
+
+================================================================================
+Try and catch split across conditional groups
+================================================================================
+
+bool f()
+{
+#ifdef E
+  try
+#endif
+  {
+    g();
+  }
+#ifdef E
+  catch (...) {
+  }
+#endif
+  return false;
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (preproc_inline_conditional)
+      (try_statement
+        (preproc_inline_conditional)
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list))))
+        (preproc_inline_conditional)
+        (catch_clause
+          (parameter_list)
+          (compound_statement)))
+      (preproc_inline_conditional)
+      (return_statement
+        (false)))))
