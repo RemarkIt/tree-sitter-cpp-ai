@@ -4945,7 +4945,15 @@
         "required": true,
         "types": [
           {
+            "type": "field_expression",
+            "named": true
+          },
+          {
             "type": "field_identifier",
+            "named": true
+          },
+          {
+            "type": "subscript_expression",
             "named": true
           }
         ]

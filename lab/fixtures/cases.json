@@ -424,6 +424,20 @@
         {"name": "half", "kind": "variable", "owner": ["tally"], "source": "int half = sum / 2;"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "enum-base-offsetof",
+      "family": "declarations",
+      "required": true,
+      "file": "enum_base_offsetof.cpp",
+      "symbols": [
+        {"name": "value", "kind": "variable", "owner": ["Inner"], "source": "int value;"},
+        {"name": "head", "kind": "variable", "owner": ["Outer"], "source": "int head;"},
+        {"name": "inner", "kind": "variable", "owner": ["Outer"], "source": "Inner inner[2];"},
+        {"name": "count", "kind": "variable", "owner": ["Table"], "source": "int count;"},
+        {"name": "inner_offset", "source": "int inner_offset() {\n    return offsetof(Outer, inner[1].value);\n}"},
+        {"name": "version", "owner": ["v1"], "source": "int version() {\n    return 1;\n}"}
+      ]
     }
   ]
 }

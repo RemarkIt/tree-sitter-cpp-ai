@@ -1735,3 +1735,89 @@ void control(Item* item) {
         (function_declarator
           (identifier)
           (parameter_list))))))
+
+==================
+Named enum bases, bitfields, plain offsetof and bare macros before declarations
+==================
+enum Color : unsigned char { Red, Green };
+enum class Mode : int { A = 1 };
+enum Opaque : int;
+enum { Plain = 2 };
+struct Bits { unsigned flag : 1; enum Color tone : 2; };
+int off = offsetof(struct Bits, flag);
+NS_BEGIN
+inline int f() { return 1; }
+namespace plain { int y; }
+inline namespace v1 { int z; }
+---
+(translation_unit
+  (enum_specifier
+    (type_identifier)
+    (sized_type_specifier
+      (primitive_type))
+    (enumerator_list
+      (enumerator
+        (identifier))
+      (enumerator
+        (identifier))))
+  (enum_specifier
+    (type_identifier)
+    (primitive_type)
+    (enumerator_list
+      (enumerator
+        (identifier)
+        (number_literal))))
+  (enum_specifier
+    (type_identifier)
+    (primitive_type))
+  (enum_specifier
+    (enumerator_list
+      (enumerator
+        (identifier)
+        (number_literal))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (sized_type_specifier)
+        (field_identifier)
+        (bitfield_clause
+          (number_literal)))
+      (field_declaration
+        (enum_specifier
+          (type_identifier))
+        (field_identifier)
+        (bitfield_clause
+          (number_literal)))))
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (offsetof_expression
+        (type_descriptor
+          (struct_specifier
+            (type_identifier)))
+        (field_identifier))))
+  (uncertain_macro_invocation
+    (identifier))
+  (function_definition
+    (storage_class_specifier)
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (return_statement
+        (number_literal))))
+  (namespace_definition
+    (namespace_identifier)
+    (declaration_list
+      (declaration
+        (primitive_type)
+        (identifier))))
+  (namespace_definition
+    (namespace_identifier)
+    (declaration_list
+      (declaration
+        (primitive_type)
+        (identifier)))))

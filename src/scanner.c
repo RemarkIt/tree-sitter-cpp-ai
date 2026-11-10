@@ -682,12 +682,14 @@ static const char *const STATEMENT_KEYWORDS[] = {
 };
 
 /// After a word on its own line: true when a keyword type follows, possibly after specifiers.
-/// `auto` counts only after a specifier, because `A auto` is a constrained placeholder.
+/// `auto` counts only after a specifier, because `A auto` is a constrained placeholder, and so
+/// does `namespace`, as in `inline namespace`.
 /// Reports whether specifiers were consumed before the word left in `word`.
 static bool keyword_declaration_follows(TSLexer *lexer, Word *word, bool *specified) {
     bool after_specifier = false;
     for (;;) {
-        if (word_in(word, TYPE_KEYWORDS) || (after_specifier && is_placeholder_keyword(word))) {
+        if (word_in(word, TYPE_KEYWORDS) ||
+            (after_specifier && (is_placeholder_keyword(word) || word_is(word, "namespace")))) {
             return true;
         }
         if (!word_in(word, SPECIFIER_KEYWORDS)) {

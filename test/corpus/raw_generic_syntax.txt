@@ -1179,3 +1179,58 @@ void notify(Item* item) {
           (type_identifier)
           (pointer_declarator
             (identifier)))))))
+
+==================
+Unnamed enums with a base, offsetof member paths and a bare macro before inline namespace
+==================
+class Voxels {
+  enum : uint32_t {
+    EMPTY = 0xFFFFFFFF
+  };
+};
+int offset = offsetof(Storage, string.value) + offsetof(Table, rows[2].cells);
+NS_BEGIN
+inline namespace literals
+{
+int x;
+}
+---
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (enum_specifier
+          (primitive_type)
+          (enumerator_list
+            (enumerator
+              (identifier)
+              (number_literal)))))))
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (identifier)
+      (binary_expression
+        (offsetof_expression
+          (type_descriptor
+            (type_identifier))
+          (field_expression
+            (identifier)
+            (field_identifier)))
+        (offsetof_expression
+          (type_descriptor
+            (type_identifier))
+          (field_expression
+            (subscript_expression
+              (identifier)
+              (subscript_argument_list
+                (number_literal)))
+            (field_identifier))))))
+  (uncertain_macro_invocation
+    (identifier))
+  (namespace_definition
+    (namespace_identifier)
+    (declaration_list
+      (declaration
+        (primitive_type)
+        (identifier)))))

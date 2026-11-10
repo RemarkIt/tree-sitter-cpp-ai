@@ -464,6 +464,16 @@ module.exports = grammar(C, {
       $.auto,
       ')',
     ),
+    // `offsetof(T, a.b)` and `offsetof(T, a[1])` name a member path, as Clang and GCC accept.
+    offsetof_expression: $ => prec(PREC.OFFSETOF, seq(
+      'offsetof',
+      '(',
+      field('type', $.type_descriptor),
+      ',',
+      field('member', choice($._field_identifier, $.field_expression, $.subscript_expression)),
+      ')',
+    )),
+
     // `decltype(a.size(), std::true_type())` takes a comma expression, as in SFINAE return types.
     decltype: $ => seq(
       'decltype',
@@ -715,7 +725,8 @@ module.exports = grammar(C, {
           optional($._enum_base_clause),
           optional(field('body', $.enumerator_list)),
         ),
-        field('body', $.enumerator_list),
+        // An unnamed enumeration may still fix its base, as in `enum : uint32_t { A = 1 };`.
+        seq(optional($._enum_base_clause), field('body', $.enumerator_list)),
       ),
       optional($.attribute_specifier),
     )),
