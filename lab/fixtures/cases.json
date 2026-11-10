@@ -508,6 +508,22 @@
         {"name": "Holder", "owner": ["Holder"], "return_type": null, "source": "FORCE_INLINE explicit Holder(int n) : value(nullptr) {}"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "deleted-defaulted",
+      "family": "declarations",
+      "required": true,
+      "file": "deleted_defaulted.cpp",
+      "symbols": [
+        {"name": "size", "kind": "variable", "owner": ["Box"], "source": "int size;"},
+        {"name": "Box", "owner": ["Box"], "return_type": null, "definition": false, "source": "Box();"},
+        {"name": "Box", "owner": ["Box"], "return_type": null, "source": "Box(const Box& other) = delete;"},
+        {"name": "take", "owner": ["Box"], "return_type": "void", "source": "void take(U value) = delete;"},
+        {"name": "Box", "owner": ["Box"], "return_type": null, "source": "Box::Box() = default;"},
+        {"name": "release", "return_type": "void", "source": "void release(T* item) = delete;"},
+        {"name": "release", "return_type": "void", "source": "void release(int count) = delete;"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }

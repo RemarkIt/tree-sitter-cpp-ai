@@ -191,11 +191,20 @@ def clang_symbols(ast: dict[str, Any], sources: dict[str, bytes], directory: Pat
                     raise build.BenchError(f"Compiler omitted a source range: {relative}:{node.get('name')}")
                 start = begin["offset"]
                 finish = end["offset"] + end["tokLen"]
-                definition = symbol_kind == "function" and any(
+                # `= default;` and `= delete;` are function bodies, as in the standard and the parser.
+                explicit_body = symbol_kind == "function" and (
+                    node.get("explicitlyDeleted", False) or "explicitlyDefaulted" in node
+                )
+                definition = explicit_body or symbol_kind == "function" and any(
                     child["kind"] == "CompoundStmt" for child in node.get("inner", [])
                 )
                 data = sources[relative]
-                if not definition:
+                if explicit_body:
+                    # Clang ends member extents after `= delete` but namespace-scope ones before it.
+                    clause = re.match(rb"\s*=\s*(?:delete|default)\b", data[finish:])
+                    if clause:
+                        finish += clause.end()
+                if not definition or explicit_body:
                     semicolon = finish
                     while semicolon < len(data) and data[semicolon:semicolon + 1] in b" \t\r\n":
                         semicolon += 1
