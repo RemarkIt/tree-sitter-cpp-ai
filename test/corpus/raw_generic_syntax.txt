@@ -2707,3 +2707,84 @@ bool f()
       (preproc_inline_conditional)
       (return_statement
         (false)))))
+
+================================================================================
+Bare macro line between a template head and a function
+================================================================================
+
+template <typename I>
+MACRO
+I f(I it)
+{
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (uncertain_specifier
+        (identifier))
+      (type_identifier)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (identifier))))
+      (compound_statement))))
+
+================================================================================
+Annotation before an out-of-line constructor of a class template
+================================================================================
+
+MACRO function<R(A...)>::function(F f) : f_(nullptr)
+{
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (function_declarator
+      (qualified_identifier
+        (template_type
+          (type_identifier)
+          (template_argument_list
+            (type_descriptor
+              (type_identifier)
+              (abstract_function_declarator
+                (parameter_list
+                  (variadic_parameter_declaration
+                    (type_identifier)
+                    (variadic_declarator)))))))
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (field_initializer_list
+      (field_initializer
+        (field_identifier)
+        (argument_list
+          (null))))
+    (compound_statement)))
+
+================================================================================
+Parenthesized declaration as a macro argument
+================================================================================
+
+EM_JS(void, open_url, (char const *url), { open(url); });
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (expression_statement
+    (call_expression
+      (identifier)
+      (uncertain_arguments))))

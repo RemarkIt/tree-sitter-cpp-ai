@@ -478,6 +478,7 @@ static bool skip_balanced_block(TSLexer *lexer, bool *statements);
 /// with a suffix annotation `A` and never the declarator `A` of a function-like macro type `C(...)`.
 static bool call_annotation_keyword_follows(TSLexer *lexer, const Word *word);
 static bool type_declarator_follows(TSLexer *lexer, bool qualified);
+static bool constructor_initializers_follow(TSLexer *lexer);
 static bool macro_header_follows(TSLexer *lexer, bool expression_possible);
 
 /// At the `(` after a word: `M(a, b)(params) suffixes;`, a macro header as `macro_header_follows`
@@ -957,6 +958,7 @@ static const char *const CALLING_CONVENTIONS[] = {
 /// cannot continue, may put its declarator on a later line.
 static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
     Word word;
+    bool scoped = false;
     for (;;) {
         skip_horizontal_space(lexer);
         if (lexer->lookahead == '<') {
@@ -975,6 +977,7 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
                 return false;
             }
             qualified = true;
+            scoped = true;
         } else {
             break;
         }
@@ -992,7 +995,8 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
         }
         if (lexer->lookahead == '(') {
             // `T& (name)(...)` or `T (*f)(...)`: after a pointer operator, `(` begins a declarator.
-            return pointer;
+            // `A<T>::A(...) : x(y)` names an out-of-line constructor with its initializers.
+            return pointer || (scoped && constructor_initializers_follow(lexer));
         }
         if (!read_word(lexer, &word)) {
             return false;
@@ -1084,6 +1088,10 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
             }
             if (word_in(&word, TYPE_KEYWORDS)) {
                 return true;
+            }
+            if (!word_in(&word, KEYWORDS)) {
+                // `MACRO` alone on its line, then `T f(...)`: a type and its declarator.
+                return type_declarator_follows(lexer, false);
             }
             if (word_is(&word, "__declspec") && !skip_declspec_arguments(lexer)) {
                 return false;
@@ -2036,6 +2044,12 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
     bool after_word = false;
     bool string_seen = false;
     bool juxtaposed = false;
+    // A group `(...)` that is a whole argument's start, as in `M(a, (T name), b)`, is scanned like
+    // an argument list of its own: `inner` holds its state at depth 2.
+    bool argument_start = true;
+    bool grouped = false;
+    bool group_juxtaposed = false;
+    int inner = OTHER;
     for (unsigned budget = MAX_INVOCATION_SCAN; budget > 0; --budget) {
         if (lexer->eof(lexer)) {
             return false;
@@ -2043,8 +2057,16 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
         int32_t c = lexer->lookahead;
         bool word_before = after_word;
         after_word = false;
+        bool starts_argument = argument_start && depth == 1;
+        if (!is_space(c) && c != '/') {
+            argument_start = false;
+        }
         if (c == '(' || c == '[' || c == '{') {
             depth++;
+            grouped = depth == 2 ? c == '(' && starts_argument : grouped && depth > 2;
+            group_juxtaposed = group_juxtaposed && depth > 2;
+            argument_start = depth == 1;
+            inner = OTHER;
             previous = OTHER;
             advance(lexer);
         } else if (c == ')' || c == ']' || c == '}') {
@@ -2052,6 +2074,14 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
             if (--depth == 0) {
                 return c == ')' && juxtaposed;
             }
+            if (depth == 1 && grouped) {
+                while (is_space(lexer->lookahead)) {
+                    advance(lexer);
+                }
+                juxtaposed = juxtaposed || (group_juxtaposed && (lexer->lookahead == ',' || lexer->lookahead == ')'));
+            }
+            grouped = grouped && depth >= 2;
+            inner = OTHER;
             previous = OTHER;
         } else if (is_space(c)) {
             advance(lexer);
@@ -2060,6 +2090,7 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
             advance(lexer);
             if (!skip_comment_after_slash(lexer, &newline)) {
                 previous = OTHER;
+                inner = OTHER;
             }
         } else if (c == '"' || c == '\'') {
             if (!skip_quoted(lexer)) {
@@ -2067,6 +2098,7 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
             }
             string_seen = string_seen || (depth == 1 && c == '"');
             previous = OTHER;
+            inner = OTHER;
         } else if (is_digit(c)) {
             int32_t last = 0;
             while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'' ||
@@ -2076,6 +2108,7 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
                 advance(lexer);
             }
             previous = OTHER;
+            inner = OTHER;
         } else if (is_identifier_start(c)) {
             Word word;
             read_word(lexer, &word);
@@ -2085,6 +2118,7 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
                 }
                 string_seen = string_seen || depth == 1;
                 previous = OTHER;
+                inner = OTHER;
             } else if (lexer->lookahead == '"' || lexer->lookahead == '\'') {
                 bool string = lexer->lookahead == '"';
                 if (!skip_quoted(lexer)) {
@@ -2092,6 +2126,7 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
                 }
                 string_seen = string_seen || (depth == 1 && string);
                 previous = OTHER;
+                inner = OTHER;
             } else if (depth == 1 && angles == 0) {
                 after_word = true;
                 if (!word_in(&word, KEYWORDS)) {
@@ -2108,6 +2143,18 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
                 } else if (!((previous == TYPE_WORD || previous == SIGN_WORD) &&
                              (word_is(&word, "const") || word_is(&word, "volatile")))) {
                     previous = OTHER;
+                }
+            } else if (depth == 2 && grouped) {
+                if (!word_in(&word, KEYWORDS)) {
+                    group_juxtaposed = group_juxtaposed || inner == TYPE_WORD || inner == PLAIN_WORD;
+                    inner = inner == SIGN_WORD ? TYPE_WORD : PLAIN_WORD;
+                } else if (word_is(&word, "signed") || word_is(&word, "unsigned")) {
+                    inner = SIGN_WORD;
+                } else if (is_fundamental_type_word(&word)) {
+                    inner = TYPE_WORD;
+                } else if (!((inner == TYPE_WORD || inner == SIGN_WORD) &&
+                             (word_is(&word, "const") || word_is(&word, "volatile")))) {
+                    inner = OTHER;
                 }
             } else {
                 after_word = depth == 1;
@@ -2133,6 +2180,11 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
             advance(lexer);
             string_seen = false;
             previous = OTHER;
+            argument_start = true;
+        } else if (depth == 2 && grouped && (inner == TYPE_WORD || inner == SIGN_WORD) &&
+                   (c == '*' || c == '&')) {
+            inner = TYPE_WORD;
+            advance(lexer);
         } else if (depth == 1 && angles == 0 && (previous == TYPE_WORD || previous == SIGN_WORD) &&
                    (c == '*' || c == '&')) {
             previous = TYPE_WORD;
@@ -2140,6 +2192,7 @@ static bool uncertain_arguments_follow(TSLexer *lexer) {
         } else {
             advance(lexer);
             previous = OTHER;
+            inner = OTHER;
         }
     }
     return false;
