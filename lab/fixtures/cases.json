@@ -382,6 +382,12 @@
       {"name": "id", "kind": "variable", "owner": ["Info"], "source": "int id;"},
       {"name": "Info", "owner": ["Info"], "return_type": null, "source": "Info(Info const& other) NOEXCEPT_MACRO\n    {\n        id = other.id;\n    }"},
       {"name": "stop", "return_type": "void", "source": "NORETURN inline VISIBLE void stop() { __builtin_trap(); }"}
+    ]},
+    {"id": "annotation-lines-and-destructors", "family": "annotation", "required": true, "file": "annotation_lines.cpp", "symbols": [
+      {"name": "id", "kind": "variable", "owner": ["Provider"], "source": "int id;"},
+      {"name": "~Provider", "owner": ["Provider"], "return_type": null, "source": "VISIBLE virtual ~Provider() {}"},
+      {"name": "move", "owner": ["Provider"], "return_type": "void", "source": "void move(IN_PARAM Provider const& other, int x) { id = x; }"},
+      {"name": "count", "owner": ["Provider"], "source": "NOINLINE_API VISIBLE\n    static int count(int value) { return value; }"}
     ]}
   ]
 }

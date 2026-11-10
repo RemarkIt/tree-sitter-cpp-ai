@@ -1615,3 +1615,65 @@ inline __LIBCPP_VISIBILITY __LIBCPP_CONSTEXPR const _Tp&(min)(const _Tp& a, cons
     (compound_statement
       (return_statement
         (identifier)))))
+
+==================
+Annotations before cv-qualified types, destructors and on their own line
+==================
+class Provider {
+    Provider(_In_ Provider const&) = delete;
+    void move(_In_opt_ HWND const hWnd, int x);
+    VISIBILITY virtual ~Provider() {}
+    NO_RETURN NEVER_INLINE
+    static void throw_out_of_range(int value);
+};
+---
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (uncertain_specifier
+                (identifier))
+              (type_identifier)
+              (type_qualifier)
+              (abstract_reference_declarator))))
+        (delete_method_clause))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (uncertain_specifier
+                (identifier))
+              (type_identifier)
+              (type_qualifier)
+              (identifier))
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))
+      (function_definition
+        (uncertain_specifier
+          (identifier))
+        (function_declarator
+          (destructor_name
+            (identifier))
+          (parameter_list))
+        (compound_statement))
+      (field_declaration
+        (uncertain_specifier
+          (identifier))
+        (uncertain_specifier
+          (identifier))
+        (storage_class_specifier)
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier))))))))

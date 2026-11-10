@@ -494,7 +494,7 @@ static bool constructor_annotation_follows(TSLexer *lexer) {
 }
 
 static bool type_declarator_follows(TSLexer *lexer, bool qualified);
-static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier);
+static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool mid_declaration);
 
 /// After `A(...) K` with keyword `K` consumed: `A(...)` annotates a declaration when `K` is a
 /// keyword type, or a specifier or `__declspec(...)` that a certified annotation tail follows, as
@@ -509,9 +509,9 @@ static bool call_annotation_keyword_follows(TSLexer *lexer, const Word *word) {
         if (lexer->lookahead != '(' || !skip_balanced_arguments(lexer, &non_parameter)) {
             return false;
         }
-        return annotation_tail_follows(lexer, true);
+        return annotation_tail_follows(lexer, true, false);
     }
-    return word_in(word, SPECIFIER_KEYWORDS) && annotation_tail_follows(lexer, true);
+    return word_in(word, SPECIFIER_KEYWORDS) && annotation_tail_follows(lexer, true, false);
 }
 
 /// After callee `A` (consumed) and `(`: classify `A(...)` by what follows its balanced argument
@@ -830,26 +830,58 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
 /// line by a keyword type, by a qualified or templated type and its declarator, or, after a
 /// specifier keyword, by any type name and its declarator. `A B` alone stays a type and its
 /// declarator, so a plain type name directly after annotations is never claimed.
-static bool leading_annotation_follows(TSLexer *lexer) {
+static bool leading_annotation_follows(TSLexer *lexer, bool mid_declaration) {
     if (lexer->lookahead == ':' || lexer->lookahead == '<') {
         // `A::` and `A<` begin a qualified or templated name.
         return false;
     }
-    return annotation_tail_follows(lexer, false);
+    return annotation_tail_follows(lexer, false, mid_declaration);
 }
 
 /// After leading annotations (consumed), and after a specifier keyword when `after_specifier`:
 /// the rest of a certified annotation sequence, as described for `leading_annotation_follows`.
-static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier) {
+/// A destructor's `~` also ends one, as does a plain word followed by a cv-qualifier, which is a
+/// type: `_In_ T const&` has no reading with `_In_` as the type. Annotations filling a line may
+/// continue on the next one only when it begins with a keyword type or specifier, as in
+/// `NO_RETURN NEVER_INLINE` above `static void f()`. A line holding a single annotation continues
+/// only `mid_declaration`, after earlier annotations; at a statement start it is a bare macro.
+static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool mid_declaration) {
     Word word;
+    bool plain_before = false;
+    bool words = mid_declaration;
     for (;;) {
         skip_horizontal_space(lexer);
         if (lexer->lookahead == ':') {
             return type_declarator_follows(lexer, true);
         }
+        if (lexer->lookahead == '~') {
+            return true;
+        }
+        if (words && !after_specifier && (lexer->lookahead == '\n' || lexer->lookahead == '\r')) {
+            while (is_space(lexer->lookahead)) {
+                advance(lexer);
+            }
+            if (!read_word(lexer, &word)) {
+                return false;
+            }
+            if (word_in(&word, TYPE_KEYWORDS)) {
+                return true;
+            }
+            if (!word_in(&word, SPECIFIER_KEYWORDS)) {
+                return false;
+            }
+            after_specifier = true;
+            plain_before = false;
+            continue;
+        }
         if (!read_word(lexer, &word)) {
             return false;
         }
+        words = true;
+        if (plain_before && (word_is(&word, "const") || word_is(&word, "volatile"))) {
+            return true;
+        }
+        plain_before = false;
         if (word_in(&word, TYPE_KEYWORDS) || (after_specifier && is_placeholder_keyword(&word))) {
             return true;
         }
@@ -885,6 +917,7 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier) {
         if (lexer->lookahead == ':' || lexer->lookahead == '<') {
             return type_declarator_follows(lexer, true);
         }
+        plain_before = true;
     }
 }
 
@@ -1428,7 +1461,7 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
     if (valid_symbols[LEADING_ANNOTATION]) {
         // A declaration may start here, so `A B` is an ordinary type and declarator.
         lexer->result_symbol = LEADING_ANNOTATION;
-        return leading_annotation_follows(lexer);
+        return leading_annotation_follows(lexer, !valid_symbols[MACRO_INVOCATION_CALLEE]);
     }
     // A declarator annotation shares a line with the preceding token, so recovery after a
     // skipped `}` cannot turn the next declaration's type into an annotation.

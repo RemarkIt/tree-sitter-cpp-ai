@@ -1237,3 +1237,65 @@ const char& (pick)(const char& a);
             (primitive_type)
             (reference_declarator
               (identifier))))))))
+
+==================
+Destructors, cv-qualified members and bare macros keep their readings
+==================
+struct Node {
+    Node* next;
+    Value const value;
+    ~Node();
+    virtual ~Node2();
+    int size() const;
+    Q_OBJECT
+    static int count;
+};
+int main() {
+    x = ~mask;
+}
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (pointer_declarator
+          (field_identifier)))
+      (field_declaration
+        (type_identifier)
+        (type_qualifier)
+        (field_identifier))
+      (declaration
+        (function_declarator
+          (destructor_name
+            (identifier))
+          (parameter_list)))
+      (declaration
+        (function_declarator
+          (destructor_name
+            (identifier))
+          (parameter_list)))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)
+          (type_qualifier)))
+      (uncertain_macro_invocation
+        (identifier))
+      (field_declaration
+        (storage_class_specifier)
+        (primitive_type)
+        (field_identifier))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (unary_expression
+            (identifier)))))))
