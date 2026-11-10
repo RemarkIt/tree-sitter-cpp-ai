@@ -2053,3 +2053,104 @@ template <class T> auto w(T v) -> decltype(v.size()) { return v.size(); }
               (identifier)
               (field_identifier))
             (argument_list)))))))
+
+==================
+Fold expressions, parenthesized assignments and plain commas keep their reading
+==================
+template <class... Args> void fold(Args... args) {
+  (args = ... = 0);
+  (... , args);
+  (args + ...);
+}
+void d() {
+  x = (a = 1);
+  y = (a == 1, b);
+  for (i = 0, j = 1; i < n; ++i, --j) {}
+  f(a = 1, b);
+  z = (F(b, c), &a);
+}
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (variadic_type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (primitive_type)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (variadic_parameter_declaration
+            (type_identifier)
+            (variadic_declarator
+              (identifier)))))
+      (compound_statement
+        (expression_statement
+          (fold_expression
+            (identifier)
+            (number_literal)))
+        (expression_statement
+          (fold_expression
+            (identifier)))
+        (expression_statement
+          (fold_expression
+            (identifier))))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (parenthesized_expression
+            (assignment_expression
+              (identifier)
+              (number_literal)))))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (parenthesized_expression
+            (comma_expression
+              (binary_expression
+                (identifier)
+                (number_literal))
+              (identifier)))))
+      (for_statement
+        (comma_expression
+          (assignment_expression
+            (identifier)
+            (number_literal))
+          (assignment_expression
+            (identifier)
+            (number_literal)))
+        (binary_expression
+          (identifier)
+          (identifier))
+        (comma_expression
+          (update_expression
+            (identifier))
+          (update_expression
+            (identifier)))
+        (compound_statement))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (assignment_expression
+              (identifier)
+              (number_literal))
+            (identifier))))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (parenthesized_expression
+            (comma_expression
+              (call_expression
+                (identifier)
+                (argument_list
+                  (identifier)
+                  (identifier)))
+              (pointer_expression
+                (identifier)))))))))

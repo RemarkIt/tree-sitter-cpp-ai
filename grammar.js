@@ -2150,6 +2150,15 @@ module.exports = grammar(C, {
     parenthesized_expression: ($, original) => choice(
       original,
       seq('(', alias($._assignment_expression_lhs, $.assignment_expression), ')'),
+      seq('(', alias($._assignment_comma_expression, $.comma_expression), ')'),
+    ),
+
+    // The parenthesized assignment above may still start a comma expression, as in
+    // `(a = f(), &a)` or `while ((c = next(), c != EOF))`.
+    _assignment_comma_expression: $ => seq(
+      field('left', alias($._assignment_expression_lhs, $.assignment_expression)),
+      ',',
+      field('right', choice($.expression, $.comma_expression)),
     ),
 
     reflect_expression: $ => prec.right(seq(

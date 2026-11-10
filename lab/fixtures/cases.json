@@ -465,6 +465,20 @@
         {"name": "empty", "kind": "variable", "owner": ["copy_size"], "source": "auto empty = decltype(box){};"},
         {"name": "other", "kind": "variable", "owner": ["copy_size"], "source": "decltype(box)(other);"}
       ]
+    },
+    {
+      "id": "assignment-commas",
+      "family": "expressions",
+      "required": true,
+      "file": "assignment_commas.cpp",
+      "symbols": [
+        {"name": "next", "source": "int next(int value) {\n    return value + 1;\n}"},
+        {"name": "scan", "source": "int scan(int limit) {\n    int a = 0;\n    int b = 0;\n    int* p = (a = next(limit), &a);\n    while ((b = next(b), b < limit)) {\n    }\n    return *p + b;\n}"},
+        {"name": "a", "kind": "variable", "owner": ["scan"], "source": "int a = 0;"},
+        {"name": "b", "kind": "variable", "owner": ["scan"], "source": "int b = 0;"},
+        {"name": "p", "kind": "variable", "owner": ["scan"], "source": "int* p = (a = next(limit), &a);"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }

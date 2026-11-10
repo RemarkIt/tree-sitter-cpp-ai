@@ -1362,3 +1362,104 @@ void h() {
               (identifier))
             (argument_list
               (identifier))))))))
+
+==================
+Comma expressions starting with a parenthesized assignment
+==================
+void c() {
+  x = (a = 1, &a);
+  f((a = F(b, c), b));
+  if ((a = next(), a != 0)) {}
+  while ((ch = read(fd), ch >= 0)) {}
+  y = cond ? (a = F(k, n), &a) : nullptr;
+  z = (a = 1, b = 2, c);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (parenthesized_expression
+            (comma_expression
+              (assignment_expression
+                (identifier)
+                (number_literal))
+              (pointer_expression
+                (identifier))))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (parenthesized_expression
+              (comma_expression
+                (assignment_expression
+                  (identifier)
+                  (call_expression
+                    (identifier)
+                    (argument_list
+                      (identifier)
+                      (identifier))))
+                (identifier))))))
+      (if_statement
+        (condition_clause
+          (parenthesized_expression
+            (comma_expression
+              (assignment_expression
+                (identifier)
+                (call_expression
+                  (identifier)
+                  (argument_list)))
+              (binary_expression
+                (identifier)
+                (number_literal)))))
+        (compound_statement))
+      (while_statement
+        (condition_clause
+          (parenthesized_expression
+            (comma_expression
+              (assignment_expression
+                (identifier)
+                (call_expression
+                  (identifier)
+                  (argument_list
+                    (identifier))))
+              (binary_expression
+                (identifier)
+                (number_literal)))))
+        (compound_statement))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (conditional_expression
+            (identifier)
+            (parenthesized_expression
+              (comma_expression
+                (assignment_expression
+                  (identifier)
+                  (call_expression
+                    (identifier)
+                    (argument_list
+                      (identifier)
+                      (identifier))))
+                (pointer_expression
+                  (identifier))))
+            (null))))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (parenthesized_expression
+            (comma_expression
+              (assignment_expression
+                (identifier)
+                (number_literal))
+              (comma_expression
+                (assignment_expression
+                  (identifier)
+                  (number_literal))
+                (identifier)))))))))
