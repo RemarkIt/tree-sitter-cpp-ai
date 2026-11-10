@@ -401,6 +401,13 @@
       {"name": "counter", "kind": "variable", "owner": ["Runner"], "source": "int Benchmark::*counter;"},
       {"name": "start", "owner": ["Runner"], "return_type": "void", "source": "void start(int n) { (bench->*method)(n); }"},
       {"name": "total", "owner": ["Runner"], "source": "int total() const { return bench->*counter; }"}
+    ]},
+    {"id": "decltype-commas", "family": "templates", "required": true, "file": "decltype_commas.cpp", "symbols": [
+      {"name": "data", "owner": ["Text"], "return_type": "int*", "source": "int* data() const { return nullptr; }"},
+      {"name": "size", "owner": ["Text"], "source": "int size() const { return 0; }"},
+      {"name": "size_of", "return_type": "auto", "source": "auto size_of(U value) -> decltype(value.data(), value.size()) {\n    return value.size();\n}"},
+      {"name": "measure", "source": "int measure(Text text) {\n    decltype(text.data(), text.size()) length = text.size();\n    return length;\n}"},
+      {"name": "length", "kind": "variable", "owner": ["measure"], "source": "decltype(text.data(), text.size()) length = text.size();"}
     ]}
   ]
 }

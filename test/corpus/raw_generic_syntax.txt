@@ -808,3 +808,92 @@ auto value = (s->*(&Access::get))();
                   (namespace_identifier)
                   (identifier))))))
         (argument_list)))))
+
+==================
+Comma expressions in decltype
+==================
+template <class U> static auto test(int) -> decltype(std::declval<U>().c_str(), std::true_type());
+template <class C> using iterable = void_t<decltype(begin(std::declval<C>()), end(std::declval<C>()))>;
+decltype(a, b, c) value;
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (declaration
+      (storage_class_specifier)
+      (placeholder_type_specifier
+        (auto))
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (primitive_type)))
+        (trailing_return_type
+          (type_descriptor
+            (decltype
+              (comma_expression
+                (call_expression
+                  (field_expression
+                    (call_expression
+                      (qualified_identifier
+                        (namespace_identifier)
+                        (template_function
+                          (identifier)
+                          (template_argument_list
+                            (type_descriptor
+                              (type_identifier)))))
+                      (argument_list))
+                    (field_identifier))
+                  (argument_list))
+                (call_expression
+                  (qualified_identifier
+                    (namespace_identifier)
+                    (identifier))
+                  (argument_list)))))))))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (alias_declaration
+      (type_identifier)
+      (type_descriptor
+        (template_type
+          (type_identifier)
+          (template_argument_list
+            (type_descriptor
+              (decltype
+                (comma_expression
+                  (call_expression
+                    (identifier)
+                    (argument_list
+                      (call_expression
+                        (qualified_identifier
+                          (namespace_identifier)
+                          (template_function
+                            (identifier)
+                            (template_argument_list
+                              (type_descriptor
+                                (type_identifier)))))
+                        (argument_list))))
+                  (call_expression
+                    (identifier)
+                    (argument_list
+                      (call_expression
+                        (qualified_identifier
+                          (namespace_identifier)
+                          (template_function
+                            (identifier)
+                            (template_argument_list
+                              (type_descriptor
+                                (type_identifier)))))
+                        (argument_list))))))))))))
+  (declaration
+    (decltype
+      (comma_expression
+        (identifier)
+        (comma_expression
+          (identifier)
+          (identifier))))
+    (identifier)))

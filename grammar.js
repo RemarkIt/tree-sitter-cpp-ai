@@ -464,10 +464,11 @@ module.exports = grammar(C, {
       $.auto,
       ')',
     ),
+    // `decltype(a.size(), std::true_type())` takes a comma expression, as in SFINAE return types.
     decltype: $ => seq(
       'decltype',
       '(',
-      $.expression,
+      choice($.expression, $.comma_expression),
       ')',
     ),
 

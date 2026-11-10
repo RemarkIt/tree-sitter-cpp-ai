@@ -1498,3 +1498,49 @@ struct Node {
         (binary_expression
           (identifier)
           (identifier))))))
+
+==================
+Single-expression decltype and decltype(auto)
+==================
+decltype(a) single;
+decltype(auto) deduced = f();
+auto call(int x) -> decltype(g(x, 1)) { return g(x, 1); }
+---
+(translation_unit
+  (declaration
+    (decltype
+      (identifier))
+    (identifier))
+  (declaration
+    (placeholder_type_specifier
+      (decltype
+        (auto)))
+    (init_declarator
+      (identifier)
+      (call_expression
+        (identifier)
+        (argument_list))))
+  (function_definition
+    (placeholder_type_specifier
+      (auto))
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (trailing_return_type
+        (type_descriptor
+          (decltype
+            (call_expression
+              (identifier)
+              (argument_list
+                (identifier)
+                (number_literal)))))))
+    (compound_statement
+      (return_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (number_literal)))))))
