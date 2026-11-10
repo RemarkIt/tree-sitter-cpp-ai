@@ -2287,3 +2287,87 @@ inline void SetFallback(_In_opt_ decltype(details::g_pfnCallback) callbackFuncti
               (identifier)))
           (identifier))))
     (compound_statement)))
+
+==================
+Backslash include paths, version numbers in macro arguments and bare macros before directives
+==================
+#include "..\types\inc\utils.hpp"
+struct json_pointer {
+    DEPRECATED_FOR(3.11.2, operator==(json_pointer))
+    bool operator==(const string_t& rhs) const;
+};
+CHECKS_RESTORE
+
+#ifndef TextureID
+typedef U64 TextureID;
+#endif
+#ifdef MATH_OPERATORS
+inline int f() { return 1; }
+CHECKS_RESTORE
+#endif
+
+NAMESPACE_END
+
+#if defined(__clang__)
+    DIAGNOSTIC_POP
+#endif
+---
+(translation_unit
+  (preproc_include
+    (string_literal
+      (string_content)
+      (escape_sequence)
+      (string_content)
+      (escape_sequence)
+      (string_content)
+      (escape_sequence)
+      (string_content)))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (uncertain_macro_invocation
+        (identifier)
+        (argument_list
+          (number_literal)
+          (call_expression
+            (operator_name)
+            (argument_list
+              (identifier)))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (operator_name)
+          (parameter_list
+            (parameter_declaration
+              (type_qualifier)
+              (type_identifier)
+              (reference_declarator
+                (identifier))))
+          (type_qualifier)))))
+  (uncertain_macro_invocation
+    (identifier))
+  (preproc_ifdef
+    (identifier)
+    (type_definition
+      (type_identifier)
+      (type_identifier)))
+  (preproc_ifdef
+    (identifier)
+    (function_definition
+      (storage_class_specifier)
+      (primitive_type)
+      (function_declarator
+        (identifier)
+        (parameter_list))
+      (compound_statement
+        (return_statement
+          (number_literal))))
+    (uncertain_macro_invocation
+      (identifier)))
+  (uncertain_macro_invocation
+    (identifier))
+  (preproc_if
+    (preproc_defined
+      (identifier))
+    (uncertain_macro_invocation
+      (identifier))))

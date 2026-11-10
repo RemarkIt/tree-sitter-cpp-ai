@@ -844,7 +844,7 @@ static bool class_leading_annotation_follows(TSLexer *lexer) {
 static const char *const STATEMENT_KEYWORDS[] = {
     "break", "case", "catch", "co_return", "co_yield", "continue", "default", "delete", "do", "else",
     "explicit", "for", "goto", "if", "namespace", "new", "private", "protected", "public", "return",
-    "static_assert", "switch", "template", "using", "while", NULL,
+    "static_assert", "switch", "template", "typedef", "using", "while", NULL,
 };
 
 /// After a word on its own line: true when a keyword type follows, possibly after specifiers.
@@ -1224,7 +1224,23 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
         return false;
     }
     while (newline && lexer->lookahead == '#') {
-        if (!skip_path_directive(lexer) || !skip_trivia(lexer, &newline)) {
+        // A directive other than a conditional's opening line cannot fall inside a declaration
+        // `A ...` that started on the line above, as `#endif` after `IM_MSVC_RUNTIME_CHECKS_RESTORE`.
+        advance(lexer);
+        skip_horizontal_space(lexer);
+        Word directive;
+        if (!read_word(lexer, &directive)) {
+            return false;
+        }
+        if (word_is(&directive, "endif") || word_is(&directive, "define") || word_is(&directive, "undef") ||
+            word_is(&directive, "include") || word_is(&directive, "pragma")) {
+            return true;
+        }
+        if (!word_is(&directive, "if") && !word_is(&directive, "ifdef") && !word_is(&directive, "ifndef")) {
+            return false;
+        }
+        skip_directive_line(lexer);
+        if (!skip_trivia(lexer, &newline)) {
             return false;
         }
     }
@@ -1315,7 +1331,14 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
     if (!skip_trivia(lexer, &after_second) || !after_second) {
         return false;
     }
-    return new_item_starts(lexer);
+    // `A` and `B` on lines of their own before directives that keep the path, as in `END_NS`,
+    // `#if X`, `DIAGNOSTIC_POP`, `#endif` at the end of a header.
+    while (lexer->lookahead == '#') {
+        if (!skip_path_directive(lexer) || !skip_trivia(lexer, &after_second)) {
+            return false;
+        }
+    }
+    return lexer->eof(lexer) || new_item_starts(lexer);
 }
 
 /// Conditional groups larger than this are left to the structured rules when those rules apply.

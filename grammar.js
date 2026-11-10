@@ -1046,6 +1046,22 @@ module.exports = grammar(C, {
 
     // A certified leading annotation may also precede a constructor or conversion function, as in
     // `WI_NODISCARD explicit operator bool() const`.
+    // A `\u`, `\U` or `\x` without its hex digits is read like other unknown escapes, as in the
+    // Windows include path `"..\types\inc\utils.hpp"`; the longest match keeps every valid escape.
+    escape_sequence: _ => token(prec(1, seq(
+      '\\',
+      choice(
+        /[^xuU]/,
+        /\d{2,3}/,
+        /x[0-9a-fA-F]{1,4}/,
+        /u[0-9a-fA-F]{4}/,
+        /U[0-9a-fA-F]{8}/,
+        'x',
+        'u',
+        'U',
+      ),
+    ))),
+
     _constructor_specifiers: $ => choice(
       $._declaration_modifiers,
       $.explicit_function_specifier,
@@ -2377,6 +2393,9 @@ module.exports = grammar(C, {
       return token(seq(
         optional(sign),
         choice(
+          // A version number in a macro argument, as in `JSON_HEDLEY_DEPRECATED_FOR(3.11.0, f())`:
+          // a preprocessing number no C++ literal reads, so this only replaces an error.
+          seq(floatDecimalDigits, '.', floatDecimalDigits, repeat1(seq('.', floatDecimalDigits))),
           seq(
             choice(
               seq(choice('0b', '0B'), binaryDigits),
