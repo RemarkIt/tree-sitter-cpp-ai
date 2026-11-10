@@ -3051,6 +3051,10 @@
           "named": true
         },
         {
+          "type": "ms_call_modifier",
+          "named": true
+        },
+        {
           "type": "ms_declspec_modifier",
           "named": true
         },
@@ -3195,6 +3199,10 @@
           },
           {
             "type": "field_identifier",
+            "named": true
+          },
+          {
+            "type": "operator_cast",
             "named": true
           },
           {
@@ -4833,9 +4841,13 @@
         ]
       },
       "declarator": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
+          {
+            "type": "*",
+            "named": false
+          },
           {
             "type": "new_declarator",
             "named": true
@@ -4916,7 +4928,7 @@
     "fields": {
       "declarator": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "_abstract_declarator",
@@ -4994,6 +5006,10 @@
             "named": true
           },
           {
+            "type": "abstract_pointer_declarator",
+            "named": true
+          },
+          {
             "type": "abstract_reference_declarator",
             "named": true
           }
@@ -5059,6 +5075,20 @@
     "type": "optional_type_parameter_declaration",
     "named": true,
     "fields": {
+      "declarator": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "abstract_pointer_declarator",
+            "named": true
+          },
+          {
+            "type": "abstract_reference_declarator",
+            "named": true
+          }
+        ]
+      },
       "default_type": {
         "multiple": false,
         "required": true,
@@ -7247,7 +7277,7 @@
     "fields": {
       "declarator": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "_declarator",

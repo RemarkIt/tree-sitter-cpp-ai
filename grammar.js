@@ -775,11 +775,14 @@ module.exports = grammar(C, {
       ),
     ),
 
+    // `template class X<int>;` instantiates a class and has no declarator.
     template_instantiation: $ => prec(1, seq(
       optional('extern'),
       'template',
-      optional($._declaration_specifiers),
-      field('declarator', $._declarator),
+      choice(
+        seq(optional($._declaration_specifiers), field('declarator', $._declarator)),
+        $._declaration_specifiers,
+      ),
       ';',
     )),
 
@@ -813,6 +816,7 @@ module.exports = grammar(C, {
       optional(field('name', $._type_identifier)),
       '=',
       field('default_type', $.type_specifier),
+      optional(field('declarator', choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
     ),
 
     template_template_parameter_declaration: $ => seq(
@@ -844,7 +848,10 @@ module.exports = grammar(C, {
 
     optional_parameter_declaration: $ => seq(
       $._declaration_specifiers,
-      field('declarator', optional(choice($._declarator, $.abstract_reference_declarator))),
+      // An unnamed pointer parameter may take a default, as in `enable_if_t<B>* = nullptr`.
+      field('declarator', optional(choice(
+        $._declarator, $.abstract_reference_declarator, $.abstract_pointer_declarator,
+      ))),
       '=',
       field('default_value', choice($.expression, $.initializer_list)),
     ),
@@ -950,9 +957,11 @@ module.exports = grammar(C, {
       ';',
     ),
 
+    // Members take a calling convention before the declarator, as declarations do.
     field_declaration: $ => seq(
       $._declaration_specifiers,
       commaSep(seq(
+        optional($.ms_call_modifier),
         field('declarator', $._field_declarator),
         optional(choice(
           $.bitfield_clause,
@@ -966,6 +975,7 @@ module.exports = grammar(C, {
 
     inline_method_definition: $ => seq(
       $._declaration_specifiers,
+      optional($.ms_call_modifier),
       field('declarator', $._field_declarator),
       choice(
         field('body', choice($.compound_statement, $.try_statement)),
@@ -1519,12 +1529,15 @@ module.exports = grammar(C, {
       'new',
       field('placement', optional($.argument_list)),
       field('type', $.type_specifier),
-      field('declarator', optional($.new_declarator)),
+      field('declarator', optional(choice($.new_declarator, $._new_pointer_declarator))),
       field('arguments', optional(choice(
         $.argument_list,
         $.initializer_list,
       ))),
     )),
+
+    // `new T*[n]`: a new-type-id takes pointer operators greedily, before any array bounds.
+    _new_pointer_declarator: $ => prec.right(seq(repeat1('*'), optional($.new_declarator))),
 
     new_declarator: $ => prec.right(seq(
       '[',
@@ -1552,9 +1565,13 @@ module.exports = grammar(C, {
         $.template_method,
         alias($.dependent_field_identifier, $.dependent_name),
         $.operator_name,
+        alias($._operator_cast_field, $.operator_cast),
         $.splice_expression,
       )),
     ),
+
+    // `x.operator T()` names a conversion function; the call's arguments follow it.
+    _operator_cast_field: $ => prec.right(seq('operator', $._declaration_specifiers)),
 
     type_requirement: $ => seq('typename', $._class_name),
 

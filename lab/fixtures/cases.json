@@ -336,6 +336,14 @@
       {"name": "unwrap", "return_type": "util::Box<int>*", "source": "NOINLINE util::Box<int> *\nunwrap(util::Box<int> *box) { return box; }"},
       {"name": "find", "return_type": "util::Point*", "source": "EXPORT_API static util::Point *find(util::Point *points) { return points; }"},
       {"name": "count", "return_type": "int", "source": "int count(IN_PARAM const util::Point &first, IN_PARAM util::Box<int> *box) { return 2; }"}
+    ]},
+    {"id": "declarator-gaps", "family": "declarations", "required": true, "file": "declarator_gaps.cpp", "symbols": [
+      {"name": "callback", "owner": ["Pool"], "return_type": "void", "source": "static void __stdcall callback(void* context) {}"},
+      {"name": "width", "kind": "variable", "owner": ["Pool"], "source": "int width;"},
+      {"name": "sized", "source": "int sized(T value) { return 4; }"},
+      {"name": "read", "source": "int read(Number number) {\n    int value = number.operator int();\n    return value;\n}"},
+      {"name": "value", "kind": "variable", "owner": ["read"], "source": "int value = number.operator int();"},
+      {"name": "grid", "return_type": "int**", "source": "int** grid() {\n    return new int*[3];\n}"}
     ]}
   ]
 }

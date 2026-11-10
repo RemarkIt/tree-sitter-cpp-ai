@@ -413,3 +413,119 @@ unsigned long long operator""_km(unsigned long long n);
         (parameter_declaration
           (sized_type_specifier)
           (identifier))))))
+
+==================
+Member calling conventions, unnamed defaulted pointers, explicit instantiation, conversion calls and pointer arrays
+==================
+struct Pool {
+    static void __stdcall callback(void* context) {}
+    void __cdecl cleanup();
+};
+template <typename T, enable_if_t<is_pointer_v<T>>* = nullptr, class R = typename T::type*>
+void reset(int* = nullptr);
+template class Box<int>;
+extern template class std::vector<char>;
+void convert(Value value) {
+    int number = value.operator int();
+    Item** items = new Item*[count];
+}
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (function_definition
+        (storage_class_specifier)
+        (primitive_type)
+        (ms_call_modifier)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (pointer_declarator
+                (identifier)))))
+        (compound_statement))
+      (field_declaration
+        (primitive_type)
+        (ms_call_modifier)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)))))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier))
+      (optional_parameter_declaration
+        (template_type
+          (type_identifier)
+          (template_argument_list
+            (type_descriptor
+              (template_type
+                (type_identifier)
+                (template_argument_list
+                  (type_descriptor
+                    (type_identifier)))))))
+        (abstract_pointer_declarator)
+        (null))
+      (optional_type_parameter_declaration
+        (type_identifier)
+        (dependent_type
+          (qualified_identifier
+            (namespace_identifier)
+            (type_identifier)))
+        (abstract_pointer_declarator)))
+    (declaration
+      (primitive_type)
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (optional_parameter_declaration
+            (primitive_type)
+            (abstract_pointer_declarator)
+            (null))))))
+  (template_instantiation
+    (class_specifier
+      (template_type
+        (type_identifier)
+        (template_argument_list
+          (type_descriptor
+            (primitive_type))))))
+  (template_instantiation
+    (class_specifier
+      (qualified_identifier
+        (namespace_identifier)
+        (template_type
+          (type_identifier)
+          (template_argument_list
+            (type_descriptor
+              (primitive_type)))))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (compound_statement
+      (declaration
+        (primitive_type)
+        (init_declarator
+          (identifier)
+          (call_expression
+            (field_expression
+              (identifier)
+              (operator_cast
+                (primitive_type)))
+            (argument_list))))
+      (declaration
+        (type_identifier)
+        (init_declarator
+          (pointer_declarator
+            (pointer_declarator
+              (identifier)))
+          (new_expression
+            (type_identifier)
+            (new_declarator
+              (identifier))))))))

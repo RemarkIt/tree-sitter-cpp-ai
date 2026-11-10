@@ -602,3 +602,111 @@ void g(Name const name, Holder<Item> items);
               (type_descriptor
                 (type_identifier))))
           (identifier))))))
+
+==================
+Operator members, sized new and calling-convention pointers keep their readings
+==================
+template int max<int>(int, int);
+void run(Value a, Value b, int* p = nullptr) {
+    a.operator+(b);
+    a.operator()();
+    a.operator=(b);
+    auto product = new int[3];
+    auto created = new Box<int>(1);
+}
+struct Pool {
+    void (__stdcall *handler)(int);
+    int width : 4;
+};
+---
+(translation_unit
+  (template_instantiation
+    (primitive_type)
+    (function_declarator
+      (template_function
+        (identifier)
+        (template_argument_list
+          (type_descriptor
+            (primitive_type))))
+      (parameter_list
+        (parameter_declaration
+          (primitive_type))
+        (parameter_declaration
+          (primitive_type)))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))
+        (parameter_declaration
+          (type_identifier)
+          (identifier))
+        (optional_parameter_declaration
+          (primitive_type)
+          (pointer_declarator
+            (identifier))
+          (null))))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (operator_name))
+          (argument_list
+            (identifier))))
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (operator_name))
+          (argument_list)))
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (operator_name))
+          (argument_list
+            (identifier))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (new_expression
+            (primitive_type)
+            (new_declarator
+              (number_literal)))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (new_expression
+            (template_type
+              (type_identifier)
+              (template_argument_list
+                (type_descriptor
+                  (primitive_type))))
+            (argument_list
+              (number_literal)))))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (parenthesized_declarator
+            (ms_call_modifier)
+            (pointer_declarator
+              (field_identifier)))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)))))
+      (field_declaration
+        (primitive_type)
+        (field_identifier)
+        (bitfield_clause
+          (number_literal))))))
