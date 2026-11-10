@@ -529,3 +529,98 @@ void convert(Value value) {
             (type_identifier)
             (new_declarator
               (identifier))))))))
+
+==================
+Declspec arguments, calling conventions after pointers and operator function calls
+==================
+class __declspec(uuid("a817e7a2-43fa-11d0-9e44-00aa00b6770a")) Fake : public IUnknown {};
+inline void* __stdcall capture() noexcept { return 0; }
+extern "C" memory_resource* __cdecl get_default();
+struct Resource {
+    static void* __stdcall allocate(int size);
+    Resource& operator=(Resource&& other) {
+        operator=(move(other));
+        return !operator==(*this, other) ? *this : *this;
+    }
+};
+---
+(translation_unit
+  (class_specifier
+    (ms_declspec_modifier
+      (identifier)
+      (argument_list
+        (string_literal
+          (string_content))))
+    (type_identifier)
+    (base_class_clause
+      (access_specifier)
+      (type_identifier))
+    (field_declaration_list))
+  (function_definition
+    (storage_class_specifier)
+    (primitive_type)
+    (pointer_declarator
+      (ms_call_modifier)
+      (function_declarator
+        (identifier)
+        (parameter_list)
+        (noexcept)))
+    (compound_statement
+      (return_statement
+        (number_literal))))
+  (linkage_specification
+    (string_literal
+      (string_content))
+    (declaration
+      (type_identifier)
+      (pointer_declarator
+        (ms_call_modifier)
+        (function_declarator
+          (identifier)
+          (parameter_list)))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (storage_class_specifier)
+        (primitive_type)
+        (pointer_declarator
+          (ms_call_modifier)
+          (function_declarator
+            (field_identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type)
+                (identifier))))))
+      (function_definition
+        (type_identifier)
+        (reference_declarator
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier)
+                (reference_declarator
+                  (identifier))))))
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (operator_name)
+              (argument_list
+                (call_expression
+                  (identifier)
+                  (argument_list
+                    (identifier))))))
+          (return_statement
+            (conditional_expression
+              (unary_expression
+                (call_expression
+                  (operator_name)
+                  (argument_list
+                    (pointer_expression
+                      (this))
+                    (identifier))))
+              (pointer_expression
+                (this))
+              (pointer_expression
+                (this)))))))))

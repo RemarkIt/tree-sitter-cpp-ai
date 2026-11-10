@@ -273,6 +273,9 @@ module.exports = grammar(C, {
     [$.type_specifier, $._keyword_type_argument],
     [$.type_specifier, $._sized_type_argument],
     [$.type_qualifier, $._qualified_type_argument],
+    // `operator=(x)` calls an operator function where a typeless declaration may also start.
+    [$.call_expression, $._constructor_name],
+    [$.call_expression, $._declarator],
     // `unsigned(` may begin a sized type or a functional cast.
     [$.sized_type_specifier, $.call_expression],
     // Constructor names compete with called expressions and type names before `(`.
@@ -1064,11 +1067,40 @@ module.exports = grammar(C, {
       ),
     ),
 
+    // MSVC writes the calling convention of a function returning a pointer after the pointer
+    // operator, as in `void* __stdcall f()`.
+    pointer_declarator: $ => prec.dynamic(1, prec.right(seq(
+      optional($.ms_based_modifier),
+      '*',
+      repeat($.ms_pointer_modifier),
+      repeat($.type_qualifier),
+      optional($.ms_call_modifier),
+      field('declarator', $._declarator),
+    ))),
+
+    pointer_field_declarator: $ => prec.dynamic(1, prec.right(seq(
+      optional($.ms_based_modifier),
+      '*',
+      repeat($.ms_pointer_modifier),
+      repeat($.type_qualifier),
+      optional($.ms_call_modifier),
+      field('declarator', $._field_declarator),
+    ))),
+
     // A word between an access specifier and its `:`, as in Qt's `public slots:`, can only be
     // a macro; nothing else may appear there.
     _access_annotation: $ => $.identifier,
 
     _section_annotation: $ => alias($._section_label, $.identifier),
+
+    // `__declspec(uuid("..."))` and `__declspec(align(16))` take arguments.
+    ms_declspec_modifier: $ => seq(
+      '__declspec',
+      '(',
+      $.identifier,
+      optional($.argument_list),
+      ')',
+    ),
 
     access_specifier: _ => choice(
       'public',
@@ -1523,6 +1555,13 @@ module.exports = grammar(C, {
       // such as `unsigned(v);` or `long(*p) = 0;` is possible, the declaration wins.
       prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
         field('function', alias(choice('signed', 'unsigned', 'long', 'short'), $.primitive_type)),
+        field('arguments', $.argument_list),
+      )),
+      // `operator=(x)` and `operator""_s(x)` call an operator function by name. A declaration
+      // naming the operator still wins. A `typename T::type(x)` functional cast is left out: its
+      // fork at `typename` changed template-argument readings inside unrelated dependent types.
+      prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
+        field('function', $.operator_name),
         field('arguments', $.argument_list),
       )),
     ),

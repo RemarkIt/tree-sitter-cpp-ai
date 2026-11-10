@@ -177,9 +177,7 @@ void controls(void *contact) {
         (type_descriptor
           (decltype
             (call_expression
-              (concatenated_string
-                (identifier)
-                (string_literal)
+              (operator_name
                 (identifier))
               (argument_list
                 (identifier)
@@ -759,3 +757,129 @@ void f() {
         (call_expression
           (identifier)
           (argument_list))))))
+
+==================
+Operator declarations and dependent type declarations keep their readings
+==================
+template <class T> void f() {
+    typename T::type value(1);
+    typename T::type(other);
+}
+template <class T> concept C = requires { typename T::type; typename T::other; };
+struct S {
+    S& operator=(const S& other);
+    bool operator==(const S&) const;
+    operator bool() const;
+};
+S& S::operator=(const S& other) { return *this; }
+__declspec(dllexport) void exported();
+void* allocate(int size);
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (primitive_type)
+      (function_declarator
+        (identifier)
+        (parameter_list))
+      (compound_statement
+        (declaration
+          (dependent_type
+            (qualified_identifier
+              (namespace_identifier)
+              (type_identifier)))
+          (init_declarator
+            (identifier)
+            (argument_list
+              (number_literal))))
+        (declaration
+          (dependent_type
+            (qualified_identifier
+              (namespace_identifier)
+              (type_identifier)))
+          (parenthesized_declarator
+            (identifier))))))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (concept_definition
+      (identifier)
+      (requires_expression
+        (requirement_seq
+          (type_requirement
+            (qualified_identifier
+              (namespace_identifier)
+              (type_identifier)))
+          (simple_requirement)
+          (type_requirement
+            (qualified_identifier
+              (namespace_identifier)
+              (type_identifier)))
+          (simple_requirement)))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (reference_declarator
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_qualifier)
+                (type_identifier)
+                (reference_declarator
+                  (identifier)))))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (operator_name)
+          (parameter_list
+            (parameter_declaration
+              (type_qualifier)
+              (type_identifier)
+              (abstract_reference_declarator)))
+          (type_qualifier)))
+      (declaration
+        (operator_cast
+          (primitive_type)
+          (abstract_function_declarator
+            (parameter_list)
+            (type_qualifier))))))
+  (function_definition
+    (type_identifier)
+    (reference_declarator
+      (function_declarator
+        (qualified_identifier
+          (namespace_identifier)
+          (operator_name))
+        (parameter_list
+          (parameter_declaration
+            (type_qualifier)
+            (type_identifier)
+            (reference_declarator
+              (identifier))))))
+    (compound_statement
+      (return_statement
+        (pointer_expression
+          (this)))))
+  (declaration
+    (ms_declspec_modifier
+      (identifier))
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list)))
+  (declaration
+    (primitive_type)
+    (pointer_declarator
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (primitive_type)
+            (identifier)))))))

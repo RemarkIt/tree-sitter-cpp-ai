@@ -349,6 +349,13 @@
       {"name": "guarded", "source": "int guarded(int value) {\n    try {\n        value = value * 2;\n    }\n    CATCH_RETURN();\n    return value;\n}"},
       {"name": "logged", "return_type": "void", "source": "void logged(int *value) {\n    try\n    {\n        *value = 1;\n    }\n    CATCH_LOG_MSG(\"failed to set\")\n    int after = 0;\n}"},
       {"name": "after", "kind": "variable", "owner": ["logged"], "source": "int after = 0;"}
+    ]},
+    {"id": "ms-modifiers-and-operator-calls", "family": "declarations", "required": true, "file": "ms_modifiers_and_operator_calls.cpp", "symbols": [
+      {"name": "count", "kind": "variable", "owner": ["Fake"], "source": "int count;"},
+      {"name": "capture", "return_type": "void*", "source": "inline void* __stdcall capture() { return 0; }"},
+      {"name": "value", "kind": "variable", "owner": ["Resource"], "source": "int value;"},
+      {"name": "assign", "owner": ["Resource"], "return_type": "void", "source": "void assign(const Resource& other) {\n        operator=(other);\n    }"},
+      {"name": "allocate", "owner": ["Resource"], "return_type": "void*", "source": "static void* __stdcall allocate(int size) { return 0; }"}
     ]}
   ]
 }
