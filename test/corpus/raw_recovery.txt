@@ -1220,3 +1220,55 @@ HRESULT init(_In_ Render::IData* data, _In_ Events<A*, B*>* handler);
                 (abstract_pointer_declarator))))
           (pointer_declarator
             (identifier)))))))
+
+==================
+Macro handlers after try blocks
+==================
+HRESULT Run() try
+{
+    return S_OK;
+}
+CATCH_RETURN()
+void f() {
+    try {
+        work();
+    }
+    CATCH_LOG_MSG("failed: %d", code);
+    next();
+}
+---
+(translation_unit
+  (function_definition
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (try_statement
+      (compound_statement
+        (return_statement
+          (identifier)))
+      (uncertain_macro_invocation
+        (identifier)
+        (argument_list))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (try_statement
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list))))
+        (uncertain_macro_invocation
+          (identifier)
+          (argument_list
+            (string_literal
+              (string_content))
+            (identifier))))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))))

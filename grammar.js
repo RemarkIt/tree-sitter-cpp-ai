@@ -1437,11 +1437,19 @@ module.exports = grammar(C, {
       ';',
     ),
 
+    // A handler may be a macro, as in wil's `try { ... } CATCH_LOG();`: only a handler can follow
+    // a try block, so a call there is one.
     try_statement: $ => seq(
       'try',
       field('body', $.compound_statement),
-      repeat1($.catch_clause),
+      choice(repeat1($.catch_clause), alias($._macro_handler, $.uncertain_macro_invocation)),
     ),
+
+    _macro_handler: $ => prec.right(seq(
+      field('macro', $.identifier),
+      field('arguments', $.argument_list),
+      optional(';'),
+    )),
 
     catch_clause: $ => seq(
       'catch',

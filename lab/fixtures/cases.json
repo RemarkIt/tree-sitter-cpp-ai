@@ -344,6 +344,11 @@
       {"name": "read", "source": "int read(Number number) {\n    int value = number.operator int();\n    return value;\n}"},
       {"name": "value", "kind": "variable", "owner": ["read"], "source": "int value = number.operator int();"},
       {"name": "grid", "return_type": "int**", "source": "int** grid() {\n    return new int*[3];\n}"}
+    ]},
+    {"id": "try-macro-handlers", "family": "statement-macros", "required": true, "file": "try_macro_handlers.cpp", "symbols": [
+      {"name": "guarded", "source": "int guarded(int value) {\n    try {\n        value = value * 2;\n    }\n    CATCH_RETURN();\n    return value;\n}"},
+      {"name": "logged", "return_type": "void", "source": "void logged(int *value) {\n    try\n    {\n        *value = 1;\n    }\n    CATCH_LOG_MSG(\"failed to set\")\n    int after = 0;\n}"},
+      {"name": "after", "kind": "variable", "owner": ["logged"], "source": "int after = 0;"}
     ]}
   ]
 }

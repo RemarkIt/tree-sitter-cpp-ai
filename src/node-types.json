@@ -7723,6 +7723,10 @@
         {
           "type": "field_initializer_list",
           "named": true
+        },
+        {
+          "type": "uncertain_macro_invocation",
+          "named": true
         }
       ]
     }
