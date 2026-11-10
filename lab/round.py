@@ -320,9 +320,9 @@ def render(results: dict[str, Any], directory: Path) -> str:
               else f"; newly passing {gate_row['newly_passing'] or 'none'}; newly failing {gate_row['newly_failing'] or 'none'}")
     lines.append(f"gate     {mark(gate_row['passed'])} {gate_row['count']}/{gate_row['cases']}; "
                  f"regressions {gate_row['regressions'] or 'none'}{change}")
-    for name, corpus in results["corpora"].items():
+    for name, corpus in sorted(results["corpora"].items()):
         before, after = corpus["previous"], corpus["candidate"]
-        delta = " ".join(f"{key} {before[key]}→{after[key]}" for key in before)
+        delta = " ".join(f"{key} {before[key]}→{after[key]}" for key in ("files", "sites", "bytes"))
         lines.append(f"{name:<8} {mark(not corpus['newly_broken'])} {delta} | newly broken {len(corpus['newly_broken'])}, "
                      f"newly clean {len(corpus['newly_clean'])}, clean changed {len(corpus['clean_changed'])}, "
                      f"changed trees {corpus['changed_trees']}, lost {len(corpus['lost'])}, gained {len(corpus['gained'])}, "
