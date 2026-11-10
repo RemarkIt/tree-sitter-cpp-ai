@@ -1544,3 +1544,85 @@ auto call(int x) -> decltype(g(x, 1)) { return g(x, 1); }
           (argument_list
             (identifier)
             (number_literal)))))))
+
+==================
+Deleted inline methods and delete expressions keep their reading
+==================
+struct Pool {
+  Pool(const Pool&) = delete;
+  Pool& operator=(const Pool&) = default;
+  void release(int* p) { delete p; }
+};
+int* slot = nullptr;
+void drop() { delete slot; delete[] slot; }
+template <class T> T* make() { return new T; }
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_qualifier)
+              (type_identifier)
+              (abstract_reference_declarator))))
+        (delete_method_clause))
+      (function_definition
+        (type_identifier)
+        (reference_declarator
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_qualifier)
+                (type_identifier)
+                (abstract_reference_declarator)))))
+        (default_method_clause))
+      (function_definition
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (pointer_declarator
+                (identifier)))))
+        (compound_statement
+          (expression_statement
+            (delete_expression
+              (identifier)))))))
+  (declaration
+    (primitive_type)
+    (init_declarator
+      (pointer_declarator
+        (identifier))
+      (null)))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (delete_expression
+          (identifier)))
+      (expression_statement
+        (delete_expression
+          (identifier)))))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (type_identifier)
+      (pointer_declarator
+        (function_declarator
+          (identifier)
+          (parameter_list)))
+      (compound_statement
+        (return_statement
+          (new_expression
+            (type_identifier)))))))

@@ -583,12 +583,18 @@ module.exports = grammar(C, {
       alias($.qualified_type_identifier, $.qualified_identifier),
     )),
 
+    // Member templates, friends and namespace-scope templates may be defaulted or deleted, as in
+    // `template <class T> void f(T) = delete;`, the way inline methods already are.
     function_definition: ($, original) => ({
       ...original,
       members: original.members.map(
         (e) => e.name !== 'body' ?
           e :
-          field('body', choice(e.content, $.try_statement))),
+          choice(
+            field('body', choice(e.content, $.try_statement)),
+            $.default_method_clause,
+            $.delete_method_clause,
+          )),
     }),
 
     declaration: $ => seq(

@@ -897,3 +897,142 @@ decltype(a, b, c) value;
           (identifier)
           (identifier))))
     (identifier)))
+
+==================
+Deleted and defaulted member templates, friends and namespace templates
+==================
+struct Handle {
+  template <class T> Handle& operator=(const T& other) = delete;
+  template <class R, class... Args> bool operator==(const Box<R(Args...)>& other) const = delete;
+  template <class D = void> Handle(int* p, Box<D> d) = delete;
+  friend bool operator==(const Handle& left, const Handle& right) = default;
+  friend int operator-(Handle one, Handle two) = delete;
+};
+template <class T> T* addressof(const T&&) = delete;
+Handle& Handle::operator=(Handle&&) = default;
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (template_declaration
+        (template_parameter_list
+          (type_parameter_declaration
+            (type_identifier)))
+        (function_definition
+          (type_identifier)
+          (reference_declarator
+            (function_declarator
+              (operator_name)
+              (parameter_list
+                (parameter_declaration
+                  (type_qualifier)
+                  (type_identifier)
+                  (reference_declarator
+                    (identifier))))))
+          (delete_method_clause)))
+      (template_declaration
+        (template_parameter_list
+          (type_parameter_declaration
+            (type_identifier))
+          (variadic_type_parameter_declaration
+            (type_identifier)))
+        (function_definition
+          (primitive_type)
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_qualifier)
+                (template_type
+                  (type_identifier)
+                  (template_argument_list
+                    (type_descriptor
+                      (type_identifier)
+                      (abstract_function_declarator
+                        (parameter_list
+                          (variadic_parameter_declaration
+                            (type_identifier)
+                            (variadic_declarator)))))))
+                (reference_declarator
+                  (identifier))))
+            (type_qualifier))
+          (delete_method_clause)))
+      (template_declaration
+        (template_parameter_list
+          (optional_type_parameter_declaration
+            (type_identifier)
+            (primitive_type)))
+        (function_definition
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type)
+                (pointer_declarator
+                  (identifier)))
+              (parameter_declaration
+                (template_type
+                  (type_identifier)
+                  (template_argument_list
+                    (type_descriptor
+                      (type_identifier))))
+                (identifier))))
+          (delete_method_clause)))
+      (friend_declaration
+        (function_definition
+          (primitive_type)
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_qualifier)
+                (type_identifier)
+                (reference_declarator
+                  (identifier)))
+              (parameter_declaration
+                (type_qualifier)
+                (type_identifier)
+                (reference_declarator
+                  (identifier)))))
+          (default_method_clause)))
+      (friend_declaration
+        (function_definition
+          (primitive_type)
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier)
+                (identifier))
+              (parameter_declaration
+                (type_identifier)
+                (identifier))))
+          (delete_method_clause)))))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (type_identifier)
+      (pointer_declarator
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_qualifier)
+              (type_identifier)
+              (abstract_reference_declarator)))))
+      (delete_method_clause)))
+  (function_definition
+    (type_identifier)
+    (reference_declarator
+      (function_declarator
+        (qualified_identifier
+          (namespace_identifier)
+          (operator_name))
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (abstract_reference_declarator)))))
+    (default_method_clause)))
