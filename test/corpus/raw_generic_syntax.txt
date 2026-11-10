@@ -1727,3 +1727,100 @@ char test(int T::*);
           (primitive_type)
           (abstract_pointer_declarator
             (namespace_identifier)))))))
+
+==================
+Annotation macros before constructors and conversion operators
+==================
+class unique_ptr {
+    VISIBILITY
+    unique_ptr() : ptr(nullptr) {}
+    VISIBILITY
+    explicit unique_ptr(pointer p) NOEXCEPT
+        : ptr(p) {}
+    VISIBILITY constexpr unique_ptr(int n) NOEXCEPT : ptr(n) {}
+    NODISCARD operator bool() const { return ptr; }
+    VISIBILITY
+    operator rv<unique_ptr>() { return rv(*this); }
+};
+---
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (uncertain_macro_invocation
+        (identifier))
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list))
+        (field_initializer_list
+          (field_initializer
+            (field_identifier)
+            (argument_list
+              (null))))
+        (compound_statement))
+      (uncertain_macro_invocation
+        (identifier))
+      (function_definition
+        (explicit_function_specifier)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (identifier)))
+          (uncertain_specifier
+            (identifier)))
+        (field_initializer_list
+          (field_initializer
+            (field_identifier)
+            (argument_list
+              (identifier))))
+        (compound_statement))
+      (function_definition
+        (uncertain_specifier
+          (identifier))
+        (type_qualifier)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))
+          (uncertain_specifier
+            (identifier)))
+        (field_initializer_list
+          (field_initializer
+            (field_identifier)
+            (argument_list
+              (identifier))))
+        (compound_statement))
+      (function_definition
+        (uncertain_specifier
+          (identifier))
+        (operator_cast
+          (primitive_type)
+          (abstract_function_declarator
+            (parameter_list)
+            (type_qualifier)))
+        (compound_statement
+          (return_statement
+            (identifier))))
+      (uncertain_macro_invocation
+        (identifier))
+      (function_definition
+        (operator_cast
+          (template_type
+            (type_identifier)
+            (template_argument_list
+              (type_descriptor
+                (type_identifier))))
+          (abstract_function_declarator
+            (parameter_list)))
+        (compound_statement
+          (return_statement
+            (call_expression
+              (identifier)
+              (argument_list
+                (pointer_expression
+                  (this))))))))))

@@ -2373,3 +2373,47 @@ int g(int a::b);
           (qualified_identifier
             (namespace_identifier)
             (identifier)))))))
+
+==================
+Return types on their own line before operator functions
+==================
+Vec
+operator+(Vec a, Vec b);
+int
+operator new(size_t n);
+class A {
+    Vec operator-(Vec a) const;
+};
+---
+(translation_unit
+  (declaration
+    (type_identifier)
+    (function_declarator
+      (operator_name)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))
+        (parameter_declaration
+          (type_identifier)
+          (identifier)))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (operator_name)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))))
+  (class_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (function_declarator
+          (operator_name)
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (identifier)))
+          (type_qualifier))))))

@@ -536,6 +536,19 @@
         {"name": "read", "return_type": "int", "source": "int read(const Box& b, int Box::* field) { return b.*field; }"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "annotated-constructor-lines",
+      "family": "declarations",
+      "required": true,
+      "file": "annotated_constructor_lines.cpp",
+      "symbols": [
+        {"name": "a", "kind": "variable", "owner": ["Pair"], "source": "int a;"},
+        {"name": "b", "kind": "variable", "owner": ["Pair"], "source": "int b;"},
+        {"name": "Pair", "owner": ["Pair"], "return_type": null, "source": "VIS constexpr Pair() NOEXCEPT : a(0), b(0) {}"},
+        {"name": "Pair", "owner": ["Pair"], "return_type": null, "source": "VIS explicit Pair(int v) noexcept : a(v), b(v) {}"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }

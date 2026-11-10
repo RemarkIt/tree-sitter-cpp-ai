@@ -33,6 +33,9 @@ enum TokenType {
     MEMBER_POINTER_SCOPE,
 };
 
+/// Declarator suffix words read between a constructor's parameters and its initializer list.
+#define MAX_SUFFIX_WORDS 4
+
 /// The spec limits delimiters to 16 chars
 #define MAX_DELIMITER_LENGTH 16
 
@@ -446,14 +449,16 @@ static bool braces_close_initializer(TSLexer *lexer) {
     return lexer->lookahead == ';' || lexer->lookahead == ',' || lexer->lookahead == ')';
 }
 
-typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE, LEADING_CALL } MacroShape;
+/// CONSTRUCTOR_HEAD: `B(...) [suffixes] : init`, no macro but a constructor declarator.
+typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE, LEADING_CALL, CONSTRUCTOR_HEAD } MacroShape;
 
 static bool skip_balanced_block(TSLexer *lexer, bool *statements);
 
 /// After `C(...) A` (consumed), with optional arguments of `A` next: true when a member
 /// initializer list, `= default`/`= delete` or a body follows, which ends a constructor declarator
 /// with a suffix annotation `A` and never the declarator `A` of a function-like macro type `C(...)`.
-static bool constructor_annotation_follows(TSLexer *lexer) {
+/// Sets `initializers` when a member initializer list follows.
+static bool constructor_annotation_follows(TSLexer *lexer, bool *initializers) {
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
         bool non_parameter = false;
@@ -487,7 +492,8 @@ static bool constructor_annotation_follows(TSLexer *lexer) {
     }
     advance(lexer);
     if (c == ':') {
-        return lexer->lookahead != ':';
+        *initializers = lexer->lookahead != ':';
+        return *initializers;
     }
     if (!skip_trivia(lexer, &newline)) {
         return false;
@@ -548,7 +554,12 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
         return non_parameter && !expression_possible ? MACRO_INVOCATION : NOT_MACRO;
     }
     Word word;
+    bool initializers = false;
     if (!newline) {
+        if (c == ':') {
+            advance(lexer);
+            return lexer->lookahead == ':' ? NOT_MACRO : CONSTRUCTOR_HEAD;
+        }
         // `A(...) name` is never an expression; `A(...) *name` is one only where expressions may
         // start.
         if ((c == '*' || c == '&') && !expression_possible) {
@@ -558,10 +569,17 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
             return NOT_MACRO;
         }
         if (word_in(&word, KEYWORDS)) {
+            if (!annotation_possible && word_in(&word, DECLARATOR_SUFFIX_WORDS)) {
+                return constructor_annotation_follows(lexer, &initializers) && initializers ? CONSTRUCTOR_HEAD
+                                                                                            : NOT_MACRO;
+            }
             return annotation_possible && call_annotation_keyword_follows(lexer, &word) ? LEADING_CALL : NOT_MACRO;
         }
         if (!annotation_possible) {
-            return constructor_annotation_follows(lexer) ? NOT_MACRO : MACRO_TYPE;
+            if (!constructor_annotation_follows(lexer, &initializers)) {
+                return MACRO_TYPE;
+            }
+            return initializers ? CONSTRUCTOR_HEAD : NOT_MACRO;
         }
         skip_horizontal_space(lexer);
         c = lexer->lookahead;
@@ -579,7 +597,7 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
             return type_declarator_follows(lexer, true) ? LEADING_CALL : MACRO_TYPE;
         }
         if (c == '(' || c == '=' || c == '\n' || c == '\r' || c == '/') {
-            return constructor_annotation_follows(lexer) ? NOT_MACRO : MACRO_TYPE;
+            return constructor_annotation_follows(lexer, &initializers) ? NOT_MACRO : MACRO_TYPE;
         }
         return type_declarator_follows(lexer, false) ? LEADING_CALL : MACRO_TYPE;
     }
@@ -588,7 +606,10 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
     }
     if (c == '[' || c == ':') {
         advance(lexer);
-        return lexer->lookahead == c ? MACRO_INVOCATION : NOT_MACRO;
+        if (lexer->lookahead == c) {
+            return MACRO_INVOCATION;
+        }
+        return c == ':' ? CONSTRUCTOR_HEAD : NOT_MACRO;
     }
     if (!read_word(lexer, &word) || lexer->lookahead == '"' || lexer->lookahead == '\'') {
         return NOT_MACRO;
@@ -838,12 +859,37 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
 static bool constructor_initializers_follow(TSLexer *lexer) {
     bool non_parameter = false;
     bool newline = false;
-    if (!skip_balanced_arguments(lexer, &non_parameter) || !skip_trivia(lexer, &newline) ||
-        lexer->lookahead != ':') {
+    if (!skip_balanced_arguments(lexer, &non_parameter) || !skip_trivia(lexer, &newline)) {
+        return false;
+    }
+    // Declarator suffixes may come first: `noexcept(...)`, `throw()` or a macro such as `WI_NOEXCEPT`.
+    Word word;
+    for (unsigned suffixes = 0; is_identifier_start(lexer->lookahead); suffixes++) {
+        if (suffixes == MAX_SUFFIX_WORDS || !read_word(lexer, &word) ||
+            (word_in(&word, KEYWORDS) && !word_in(&word, DECLARATOR_SUFFIX_WORDS))) {
+            return false;
+        }
+        if (!skip_trivia(lexer, &newline) ||
+            (lexer->lookahead == '(' && (!skip_balanced_arguments(lexer, &non_parameter) ||
+                                         !skip_trivia(lexer, &newline)))) {
+            return false;
+        }
+    }
+    if (lexer->lookahead != ':') {
         return false;
     }
     advance(lexer);
     return lexer->lookahead != ':';
+}
+
+/// After `operator` (consumed): a conversion function's type name follows, as in `operator T()`,
+/// which no return type can precede. `operator new`, `operator delete` and `operator co_await`
+/// are ordinary operator functions.
+static bool conversion_type_follows(TSLexer *lexer) {
+    skip_horizontal_space(lexer);
+    Word word;
+    return read_word(lexer, &word) && !word_is(&word, "new") && !word_is(&word, "delete") &&
+           !word_is(&word, "co_await");
 }
 
 /// After `A` (already consumed): certify `A [B ...] [specifier keywords]` followed on one physical
@@ -910,8 +956,8 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
             continue;
         }
         if (word_in(&word, KEYWORDS)) {
-            // `A explicit operator bool()` declares a conversion function.
-            return after_specifier && word_is(&word, "operator");
+            // `A explicit operator bool()` and `A operator T()` declare conversion functions.
+            return word_is(&word, "operator") && (after_specifier || conversion_type_follows(lexer));
         }
         if (after_specifier) {
             skip_horizontal_space(lexer);
@@ -1054,6 +1100,9 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
     if (word_in(&word, STATEMENT_KEYWORDS) || keyword_declaration_follows(lexer, &word, &specified)) {
         return true;
     }
+    if (word_is(&word, "operator")) {
+        return conversion_type_follows(lexer);
+    }
     if (word_in(&word, KEYWORDS)) {
         return false;
     }
@@ -1064,7 +1113,9 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
     // `A static B x` declares with its own type `B`, so `A` cannot be a type either.
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
-        return !specified && classify_macro_call(lexer, false, true, false) == MACRO_INVOCATION;
+        // A member initializer list after `B(...)` ends only a constructor declarator.
+        MacroShape shape = classify_macro_call(lexer, false, true, false);
+        return shape == CONSTRUCTOR_HEAD || (!specified && shape == MACRO_INVOCATION);
     }
     for (;;) {
         skip_horizontal_space(lexer);
