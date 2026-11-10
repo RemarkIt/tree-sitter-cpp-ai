@@ -1617,7 +1617,7 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
 }
 
 /// After `typename` (consumed): a dependent name, possibly qualified and templated, followed by `(`
-/// begins a functional cast such as `typename T::type(x)`.
+/// or `{` begins a functional cast such as `typename T::type(x)` or `typename T::type{}`.
 static bool dependent_cast_follows(TSLexer *lexer) {
     Word word;
     skip_horizontal_space(lexer);
@@ -1658,7 +1658,7 @@ static bool dependent_cast_follows(TSLexer *lexer) {
         advance(lexer);
         qualified = true;
     }
-    return qualified && lexer->lookahead == '(';
+    return qualified && (lexer->lookahead == '(' || lexer->lookahead == '{');
 }
 
 /// After a word: the rest of an unnamed pointer to member, `::*` or `::B::*`, then cv-qualifiers and

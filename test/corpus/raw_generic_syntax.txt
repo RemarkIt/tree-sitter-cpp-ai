@@ -1933,3 +1933,133 @@ unique_cookie
             (reference_declarator
               (identifier)))))
       (compound_statement))))
+
+==================
+Attributes before friend, decltype bases, braced init-captures, conversion calls and typename braced casts
+==================
+struct weak_ordering {
+    [[nodiscard]] friend constexpr bool operator==(const weak_ordering left, int) noexcept {
+        return true;
+    }
+};
+
+struct A : decltype(f<T>(0)) {};
+struct B : public decltype((f<T, U>(0))) {};
+
+auto handler = [weakThis{ get_weak() }, x](int a) { return a; };
+
+void g() {
+    p.operator Object *();
+    auto u = ordering<D>::unordered{typename D::tag{}};
+}
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (friend_declaration
+        (attribute_declaration
+          (attribute
+            (identifier)))
+        (function_definition
+          (type_qualifier)
+          (primitive_type)
+          (function_declarator
+            (operator_name)
+            (parameter_list
+              (parameter_declaration
+                (type_qualifier)
+                (type_identifier)
+                (identifier))
+              (parameter_declaration
+                (primitive_type)))
+            (noexcept))
+          (compound_statement
+            (return_statement
+              (true)))))))
+  (struct_specifier
+    (type_identifier)
+    (base_class_clause
+      (decltype
+        (call_expression
+          (template_function
+            (identifier)
+            (template_argument_list
+              (type_descriptor
+                (type_identifier))))
+          (argument_list
+            (number_literal)))))
+    (field_declaration_list))
+  (struct_specifier
+    (type_identifier)
+    (base_class_clause
+      (access_specifier)
+      (decltype
+        (parenthesized_expression
+          (call_expression
+            (template_function
+              (identifier)
+              (template_argument_list
+                (type_descriptor
+                  (type_identifier))
+                (type_descriptor
+                  (type_identifier))))
+            (argument_list
+              (number_literal))))))
+    (field_declaration_list))
+  (declaration
+    (placeholder_type_specifier
+      (auto))
+    (init_declarator
+      (identifier)
+      (lambda_expression
+        (lambda_capture_specifier
+          (lambda_capture_initializer
+            (identifier)
+            (initializer_list
+              (call_expression
+                (identifier)
+                (argument_list))))
+          (identifier))
+        (lambda_declarator
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier))))
+        (compound_statement
+          (return_statement
+            (identifier))))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (field_expression
+            (identifier)
+            (operator_cast
+              (type_identifier)
+              (abstract_pointer_declarator)))
+          (argument_list)))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (compound_literal_expression
+            (qualified_identifier
+              (template_type
+                (type_identifier)
+                (template_argument_list
+                  (type_descriptor
+                    (type_identifier))))
+              (type_identifier))
+            (initializer_list
+              (compound_literal_expression
+                (dependent_type
+                  (qualified_identifier
+                    (namespace_identifier)
+                    (type_identifier)))
+                (initializer_list)))))))))

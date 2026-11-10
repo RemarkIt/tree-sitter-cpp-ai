@@ -711,7 +711,22 @@
   {
     "type": "abstract_reference_declarator",
     "named": true,
-    "fields": {},
+    "fields": {
+      "declarator": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "abstract_pointer_declarator",
+            "named": true
+          },
+          {
+            "type": "abstract_reference_declarator",
+            "named": true
+          }
+        ]
+      }
+    },
     "children": {
       "multiple": false,
       "required": false,
@@ -1175,6 +1190,10 @@
         },
         {
           "type": "attribute_declaration",
+          "named": true
+        },
+        {
+          "type": "decltype",
           "named": true
         },
         {
@@ -1793,6 +1812,10 @@
         "types": [
           {
             "type": "decltype",
+            "named": true
+          },
+          {
+            "type": "dependent_type",
             "named": true
           },
           {
@@ -3708,9 +3731,13 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "attribute_declaration",
+          "named": true
+        },
         {
           "type": "declaration",
           "named": true
@@ -4457,6 +4484,10 @@
         "types": [
           {
             "type": "expression",
+            "named": true
+          },
+          {
+            "type": "initializer_list",
             "named": true
           }
         ]

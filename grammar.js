@@ -220,7 +220,7 @@ module.exports = grammar(C, {
     // `_Post_satisfies_(return == 0)` are not C++ expressions.
     $._annotation_arguments,
     // Zero-width, before `typename` in an expression: certified when the dependent name is followed
-    // by `(`, as in `typename T::type(x)`, so a functional cast never forks a type reading.
+    // by `(` or `{`, as in `typename T::type(x)`, so a functional cast never forks a type reading.
     $._typename_cast,
     // Never produced: its validity marks where a template argument, possibly a type, may start.
     $._template_argument_probe,
@@ -293,6 +293,9 @@ module.exports = grammar(C, {
     [$.call_expression, $._declarator],
     // `unsigned(` may begin a sized type or a functional cast.
     [$.sized_type_specifier, $.call_expression],
+    // `[[nodiscard]] friend ...`: attributes before `friend` or before a member's specifiers.
+    [$._declaration_modifiers, $.friend_declaration, $.using_declaration],
+    [$._declaration_modifiers, $.friend_declaration],
     // Constructor names compete with called expressions and type names before `(`.
     [$.type_specifier, $.expression, $._constructor_name],
     [$.expression, $._constructor_name],
@@ -719,7 +722,7 @@ module.exports = grammar(C, {
           seq($.access_specifier, optional('virtual')),
           seq('virtual', optional($.access_specifier)),
         )),
-        $._class_name,
+        choice($._class_name, $.decltype),
         optional('...'),
       )),
     ),
@@ -1099,6 +1102,7 @@ module.exports = grammar(C, {
     pure_virtual_clause: _ => seq('=', /0/, ';'),
 
     friend_declaration: $ => seq(
+      repeat($.attribute_declaration),
       optional('constexpr'),
       'friend',
       choice(
@@ -1741,7 +1745,24 @@ module.exports = grammar(C, {
     ),
 
     // `x.operator T()` names a conversion function; the call's arguments follow it.
-    _operator_cast_field: $ => prec.right(seq('operator', $._declaration_specifiers)),
+    _operator_cast_field: $ => prec.right(seq(
+      'operator',
+      $._declaration_specifiers,
+      optional(field('declarator', $._conversion_declarator)),
+    )),
+
+    // The pointer and reference operators of a conversion type, as in `x.operator T*()`; unlike an
+    // abstract declarator, never parameters, which are the call's arguments.
+    _conversion_declarator: $ => choice(
+      alias($.conversion_pointer_declarator, $.abstract_pointer_declarator),
+      alias($.conversion_reference_declarator, $.abstract_reference_declarator),
+    ),
+    conversion_pointer_declarator: $ => prec.right(seq(
+      '*', repeat($.type_qualifier), optional(field('declarator', $._conversion_declarator)),
+    )),
+    conversion_reference_declarator: $ => prec.right(seq(
+      choice('&', '&&'), optional(field('declarator', $._conversion_declarator)),
+    )),
 
     type_requirement: $ => seq('typename', $._class_name),
 
@@ -1890,8 +1911,11 @@ module.exports = grammar(C, {
       optional('&'),
       optional('...'),
       field('left', $.identifier),
-      '=',
-      field('right', $.expression),
+      choice(
+        seq('=', field('right', $.expression)),
+        // `[w{ get_weak() }]`
+        field('right', $.initializer_list),
+      ),
     ),
 
     _lambda_capture: $ => choice(
@@ -2107,6 +2131,12 @@ module.exports = grammar(C, {
           $.primitive_type,
           $.decltype,
           seq(optional('typename'), $.splice_type_specifier))),
+        field('value', $.initializer_list),
+      ),
+      // `typename T::type{}`, certified like `typename T::type(x)`.
+      seq(
+        $._typename_cast,
+        field('type', $.dependent_type),
         field('value', $.initializer_list),
       ),
     ),

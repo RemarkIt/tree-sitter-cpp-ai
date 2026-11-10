@@ -600,6 +600,23 @@
           "source": "int after(int x) { return x; }"
         }
       ]
+    },
+    {
+      "id": "standard-gaps",
+      "family": "declarations",
+      "required": true,
+      "file": "standard_gaps.cpp",
+      "symbols": [
+        {"name": "make", "definition": false, "return_type": "Base", "source": "Base make();"},
+        {"name": "extra", "kind": "variable", "owner": ["Derived"], "source": "int extra;"},
+        {"name": "more", "kind": "variable", "owner": ["D2"], "source": "int more;"},
+        {"name": "capture", "return_type": "int", "source": "int capture(int v) { auto f = [w{ v }, v](int a) { return a + w + v; }; return f(1); }"},
+        {"name": "f", "kind": "variable", "owner": ["capture"], "source": "auto f = [w{ v }, v](int a) { return a + w + v; };"},
+        {"name": "raw", "return_type": "int *", "source": "int* raw(const Handle& h) { return h.operator int*(); }"},
+        {"name": "make_tag", "return_type": "int", "source": "int make_tag() { auto t = typename T::type{}; return 0; }"},
+        {"name": "t", "kind": "variable", "owner": ["make_tag"], "source": "auto t = typename T::type{};"},
+        {"name": "after", "return_type": "int", "source": "int after(int x) { return x; }"}
+      ]
     }
   ]
 }
