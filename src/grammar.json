@@ -3841,6 +3841,15 @@
                   },
                   "named": true,
                   "value": "uncertain_specifier"
+                },
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_leading_uncertain_specifier_call"
+                  },
+                  "named": true,
+                  "value": "uncertain_specifier"
                 }
               ]
             }
@@ -13432,6 +13441,33 @@
       "named": true,
       "value": "identifier"
     },
+    "_leading_uncertain_specifier_call": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_leading_annotation_callee"
+          },
+          "named": true,
+          "value": "identifier"
+        },
+        {
+          "type": "FIELD",
+          "name": "arguments",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_annotation_arguments"
+            },
+            "named": true,
+            "value": "uncertain_arguments"
+          }
+        }
+      ]
+    },
     "_class_leading_uncertain_specifier": {
       "type": "ALIAS",
       "content": {
@@ -21095,6 +21131,14 @@
     {
       "type": "SYMBOL",
       "name": "_section_label"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_leading_annotation_callee"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_annotation_arguments"
     },
     {
       "type": "SYMBOL",

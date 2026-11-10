@@ -1405,3 +1405,87 @@ void close_log(int file) {
             (call_expression
               (identifier)
               (argument_list))))))))
+
+==================
+Annotation calls before declaration types
+==================
+_Always_(_Post_satisfies_(return < 0)) __declspec(noinline) inline NTSTATUS StatusFromException() noexcept;
+_Post_satisfies_(return == static_cast<bool>(val)) constexpr bool verify_bool(const T& val) { return val; }
+_Out_range_(==, var) NewT safe_cast(const OldT var);
+void debug(_When_(text != nullptr, _Pre_satisfies_(count > 0)) size_t count);
+struct socket_address {
+    explicit socket_address(_In_reads_bytes_(size) const SOCKADDR* addr, size_t size);
+};
+---
+(translation_unit
+  (declaration
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (ms_declspec_modifier
+      (identifier))
+    (storage_class_specifier)
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list)
+      (noexcept)))
+  (function_definition
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (type_qualifier)
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_qualifier)
+          (type_identifier)
+          (reference_declarator
+            (identifier)))))
+    (compound_statement
+      (return_statement
+        (identifier))))
+  (declaration
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_qualifier)
+          (type_identifier)
+          (identifier)))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier)
+            (uncertain_arguments))
+          (primitive_type)
+          (identifier)))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (declaration
+        (explicit_function_specifier)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (uncertain_specifier
+                (identifier)
+                (uncertain_arguments))
+              (type_qualifier)
+              (type_identifier)
+              (pointer_declarator
+                (identifier)))
+            (parameter_declaration
+              (primitive_type)
+              (identifier))))))))

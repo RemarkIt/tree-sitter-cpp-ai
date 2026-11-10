@@ -8043,6 +8043,10 @@
           {
             "type": "argument_list",
             "named": true
+          },
+          {
+            "type": "uncertain_arguments",
+            "named": true
           }
         ]
       }
@@ -9209,6 +9213,10 @@
   {
     "type": "uR\"",
     "named": false
+  },
+  {
+    "type": "uncertain_arguments",
+    "named": true
   },
   {
     "type": "union",

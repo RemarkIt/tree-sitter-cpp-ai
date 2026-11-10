@@ -24,6 +24,8 @@ enum TokenType {
     JUXTAPOSED_CALLEE,
     PREPROC_RAW_ARGUMENT,
     SECTION_LABEL,
+    LEADING_ANNOTATION_CALLEE,
+    ANNOTATION_ARGUMENTS,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -441,7 +443,7 @@ static bool braces_close_initializer(TSLexer *lexer) {
     return lexer->lookahead == ';' || lexer->lookahead == ',' || lexer->lookahead == ')';
 }
 
-typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE } MacroShape;
+typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE, LEADING_CALL } MacroShape;
 
 /// After `C(...) A` (consumed), with optional arguments of `A` next: true when a member
 /// initializer list or `= default`/`= delete` follows, which ends a constructor declarator with a
@@ -473,10 +475,34 @@ static bool constructor_annotation_follows(TSLexer *lexer) {
     return read_word(lexer, &word) && (word_is(&word, "default") || word_is(&word, "delete"));
 }
 
+static bool type_declarator_follows(TSLexer *lexer, bool qualified);
+static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier);
+
+/// After `A(...) K` with keyword `K` consumed: `A(...)` annotates a declaration when `K` is a
+/// keyword type, or a specifier or `__declspec(...)` that a certified annotation tail follows, as
+/// in `_Always_(...) __declspec(noinline) inline NTSTATUS f(`.
+static bool call_annotation_keyword_follows(TSLexer *lexer, const Word *word) {
+    if (word_in(word, TYPE_KEYWORDS)) {
+        return true;
+    }
+    if (word_is(word, "__declspec")) {
+        skip_horizontal_space(lexer);
+        bool non_parameter = false;
+        if (lexer->lookahead != '(' || !skip_balanced_arguments(lexer, &non_parameter)) {
+            return false;
+        }
+        return annotation_tail_follows(lexer, true);
+    }
+    return word_in(word, SPECIFIER_KEYWORDS) && annotation_tail_follows(lexer, true);
+}
+
 /// After callee `A` (consumed) and `(`: classify `A(...)` by what follows its balanced argument
 /// list. It is a statement-like invocation when nothing can continue an expression or
-/// declarator, and a type when a declarator follows on the same line.
-static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible, bool expression_possible) {
+/// declarator, and a type when a declarator follows on the same line. Where a declaration's
+/// specifiers may start, it is a leading annotation call when a keyword type, a specifier, or a
+/// type name and its declarator follow on the same line, which a macro type never can.
+static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible, bool expression_possible,
+                                      bool annotation_possible) {
     bool non_parameter = false;
     if (!skip_balanced_arguments(lexer, &non_parameter)) {
         return NOT_MACRO;
@@ -507,10 +533,34 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
         if ((c == '*' || c == '&') && !expression_possible) {
             return MACRO_TYPE;
         }
-        if (!read_word(lexer, &word) || word_in(&word, KEYWORDS) || lexer->lookahead == '"' || lexer->lookahead == '\'') {
+        if (!read_word(lexer, &word) || lexer->lookahead == '"' || lexer->lookahead == '\'') {
             return NOT_MACRO;
         }
-        return constructor_annotation_follows(lexer) ? NOT_MACRO : MACRO_TYPE;
+        if (word_in(&word, KEYWORDS)) {
+            return annotation_possible && call_annotation_keyword_follows(lexer, &word) ? LEADING_CALL : NOT_MACRO;
+        }
+        if (!annotation_possible) {
+            return constructor_annotation_follows(lexer) ? NOT_MACRO : MACRO_TYPE;
+        }
+        skip_horizontal_space(lexer);
+        c = lexer->lookahead;
+        if (c == ':') {
+            // `C(...) A : init` is a constructor; `A(...) ns::T name` a qualified type after a call.
+            advance(lexer);
+            if (lexer->lookahead != ':') {
+                return NOT_MACRO;
+            }
+            advance(lexer);
+            skip_horizontal_space(lexer);
+            if (!read_word(lexer, &word) || (word_in(&word, KEYWORDS) && !word_in(&word, TYPE_KEYWORDS))) {
+                return MACRO_TYPE;
+            }
+            return type_declarator_follows(lexer, true) ? LEADING_CALL : MACRO_TYPE;
+        }
+        if (c == '(' || c == '=' || c == '\n' || c == '\r' || c == '/') {
+            return constructor_annotation_follows(lexer) ? NOT_MACRO : MACRO_TYPE;
+        }
+        return type_declarator_follows(lexer, false) ? LEADING_CALL : MACRO_TYPE;
     }
     if (c == '#' || c == '~') {
         return MACRO_INVOCATION;
@@ -757,8 +807,13 @@ static bool leading_annotation_follows(TSLexer *lexer) {
         // `A::` and `A<` begin a qualified or templated name.
         return false;
     }
+    return annotation_tail_follows(lexer, false);
+}
+
+/// After leading annotations (consumed), and after a specifier keyword when `after_specifier`:
+/// the rest of a certified annotation sequence, as described for `leading_annotation_follows`.
+static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier) {
     Word word;
-    bool after_specifier = false;
     for (;;) {
         skip_horizontal_space(lexer);
         if (lexer->lookahead == ':') {
@@ -898,7 +953,7 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
     // `A static B x` declares with its own type `B`, so `A` cannot be a type either.
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
-        return !specified && classify_macro_call(lexer, false, true) == MACRO_INVOCATION;
+        return !specified && classify_macro_call(lexer, false, true, false) == MACRO_INVOCATION;
     }
     for (;;) {
         skip_horizontal_space(lexer);
@@ -1289,11 +1344,15 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
             lexer->result_symbol = CLASS_ANNOTATION_CALLEE;
             return class_annotation_follows(lexer);
         }
-        if (!valid_symbols[MACRO_INVOCATION_CALLEE] && !valid_symbols[MACRO_TYPE_CALLEE]) {
+        if (!valid_symbols[MACRO_INVOCATION_CALLEE] && !valid_symbols[MACRO_TYPE_CALLEE] &&
+            !valid_symbols[LEADING_ANNOTATION_CALLEE]) {
             return false;
         }
         switch (classify_macro_call(lexer, valid_symbols[INITIALIZER_START_PROBE],
-                                    valid_symbols[EXPRESSION_START_PROBE])) {
+                                    valid_symbols[EXPRESSION_START_PROBE], valid_symbols[LEADING_ANNOTATION_CALLEE])) {
+            case LEADING_CALL:
+                lexer->result_symbol = LEADING_ANNOTATION_CALLEE;
+                return true;
             case MACRO_INVOCATION:
                 lexer->result_symbol = MACRO_INVOCATION_CALLEE;
                 return valid_symbols[MACRO_INVOCATION_CALLEE];
@@ -1453,11 +1512,25 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
         return scan_preproc_raw_argument(lexer);
     }
 
+    if (valid_symbols[ANNOTATION_ARGUMENTS]) {
+        // Only a certified leading annotation callee precedes these arguments.
+        while (is_space(lexer->lookahead)) {
+            lexer->advance(lexer, true);
+        }
+        bool non_parameter = false;
+        if (lexer->lookahead != '(' || !skip_balanced_arguments(lexer, &non_parameter)) {
+            return false;
+        }
+        lexer->mark_end(lexer);
+        lexer->result_symbol = ANNOTATION_ARGUMENTS;
+        return true;
+    }
+
     bool identifier_tokens = valid_symbols[LEADING_ANNOTATION] || valid_symbols[DECLARATOR_ANNOTATION] ||
                              valid_symbols[MACRO_INVOCATION_CALLEE] || valid_symbols[MACRO_TYPE_CALLEE] ||
                              valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION] ||
                              valid_symbols[FUNCTION_SUFFIX_ANNOTATION] || valid_symbols[JUXTAPOSED_CALLEE] ||
-                             valid_symbols[SECTION_LABEL];
+                             valid_symbols[SECTION_LABEL] || valid_symbols[LEADING_ANNOTATION_CALLEE];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {

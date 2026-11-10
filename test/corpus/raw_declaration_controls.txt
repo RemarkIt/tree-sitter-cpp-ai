@@ -1012,3 +1012,84 @@ void run(int a) {
               (identifier))))
         (parenthesized_expression
           (identifier))))))
+
+==================
+Macro types and constructor annotations keep their readings beside annotation calls
+==================
+DECLARE_HANDLE(Window) handle;
+Widget::Widget(int value) API_CALL(1) : value_(value) {}
+void f() {
+    CALL(x) + 1;
+    MACRO_TYPE(T) name = 3;
+    TYPE_OF(x) other(4);
+}
+struct Node {
+    LIST_ENTRY(Node) *next;
+};
+---
+(translation_unit
+  (declaration
+    (uncertain_macro_type
+      (identifier)
+      (argument_list
+        (identifier)))
+    (identifier))
+  (function_definition
+    (function_declarator
+      (qualified_identifier
+        (namespace_identifier)
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (uncertain_specifier
+        (identifier)
+        (argument_list
+          (number_literal))))
+    (field_initializer_list
+      (field_initializer
+        (field_identifier)
+        (argument_list
+          (identifier))))
+    (compound_statement))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (binary_expression
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))
+          (number_literal)))
+      (declaration
+        (uncertain_macro_type
+          (identifier)
+          (argument_list
+            (identifier)))
+        (init_declarator
+          (identifier)
+          (number_literal)))
+      (declaration
+        (uncertain_macro_type
+          (identifier)
+          (argument_list
+            (identifier)))
+        (init_declarator
+          (identifier)
+          (argument_list
+            (number_literal))))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (uncertain_macro_type
+          (identifier)
+          (argument_list
+            (identifier)))
+        (pointer_declarator
+          (field_identifier))))))

@@ -213,6 +213,12 @@ module.exports = grammar(C, {
     // At a class member's start: `S` in `S:` ending its line, a macro standing for an access
     // specifier such as Qt's `signals:`. An unnamed bit-field always has its width on the line.
     $._section_label,
+    // Before a declaration's type: `A` in `A(...) size_t n`, certified by a keyword type, a
+    // specifier, or a type and its declarator after the arguments on the same line.
+    $._leading_annotation_callee,
+    // The balanced arguments of such a call, kept opaque: annotation languages such as SAL's
+    // `_Post_satisfies_(return == 0)` are not C++ expressions.
+    $._annotation_arguments,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -618,6 +624,12 @@ module.exports = grammar(C, {
     // error recovery can invent one before a plain type name.
     _leading_uncertain_specifier: $ => alias($._leading_annotation, $.identifier),
 
+    // A call before a declaration's type, as in SAL's `_When_(p != nullptr, ...) size_t n`.
+    _leading_uncertain_specifier_call: $ => seq(
+      alias($._leading_annotation_callee, $.identifier),
+      field('arguments', alias($._annotation_arguments, $.uncertain_arguments)),
+    ),
+
     // Certified by the scanner only when a second bare identifier (the prospective class name) is
     // directly followed by `{`, and that block's own `;` proves it a member declaration list
     // rather than a braced initializer of an elaborated-type-specifier's plain declarator.
@@ -629,6 +641,7 @@ module.exports = grammar(C, {
       repeat(choice(
         $._declaration_modifiers,
         alias($._leading_uncertain_specifier, $.uncertain_specifier),
+        alias($._leading_uncertain_specifier_call, $.uncertain_specifier),
       )),
       field('type', $.type_specifier),
       repeat($._declaration_modifiers),

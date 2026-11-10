@@ -367,6 +367,11 @@
       {"name": "login", "source": "int login(int a, int b) {\n#ifndef DISABLE_DIGEST\n    if (a)\n        return perform(1);\n    else\n#endif\n    if (b)\n        return perform(2);\n    return 0;\n}"},
       {"name": "close_log", "source": "int close_log(int file) {\n#ifndef DISABLE_TTY\n    if (file != 1)\n#endif\n        file = perform(file);\n#ifdef VMS\n    if (perform(3) == -1)\n#else\n    if (perform(4) == -1)\n#endif\n    {\n        int failed = 1;\n        return failed;\n    }\n    return file;\n}"},
       {"name": "failed", "kind": "variable", "owner": ["close_log"], "source": "int failed = 1;"}
+    ]},
+    {"id": "leading-annotation-calls", "family": "annotation", "required": true, "file": "annotation_calls.cpp", "symbols": [
+      {"name": "verify", "return_type": "bool", "source": "_Post_satisfies_(return == true) inline bool verify(int value) { return value == 1; }"},
+      {"name": "copy", "definition": false, "source": "int copy(_In_reads_bytes_(size) const char* data, unsigned size);"},
+      {"name": "debug", "definition": false, "source": "int debug(_When_(text != nullptr, size > 0) unsigned size, const char* text);"}
     ]}
   ]
 }
