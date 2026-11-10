@@ -1195,6 +1195,26 @@ module.exports = grammar(C, {
       field('declarator', $._declarator),
     ))),
 
+    // C++/CX handles to reference-counted objects, as in `Platform::String^ f(Object^ o)`, declare
+    // like pointers with `^`.
+    _handle_declarator: $ => prec.dynamic(1, prec.right(seq(
+      '^',
+      repeat($.type_qualifier),
+      field('declarator', $._declarator),
+    ))),
+
+    _handle_field_declarator: $ => prec.dynamic(1, prec.right(seq(
+      '^',
+      repeat($.type_qualifier),
+      field('declarator', $._field_declarator),
+    ))),
+
+    _abstract_handle_declarator: $ => prec.dynamic(1, prec.right(seq(
+      '^',
+      repeat($.type_qualifier),
+      field('declarator', optional($._abstract_declarator)),
+    ))),
+
     pointer_field_declarator: $ => prec.dynamic(1, prec.right(seq(
       optional($.ms_based_modifier),
       '*',
@@ -1227,6 +1247,7 @@ module.exports = grammar(C, {
 
     _declarator: ($, original) => choice(
       original,
+      alias($._handle_declarator, $.pointer_declarator),
       $.annotated_declarator,
       $.reference_declarator,
       $.qualified_identifier,
@@ -1238,6 +1259,7 @@ module.exports = grammar(C, {
 
     _field_declarator: ($, original) => choice(
       original,
+      alias($._handle_field_declarator, $.pointer_declarator),
       alias($._member_pointer_field_declarator, $.pointer_declarator),
       alias($.annotated_field_declarator, $.annotated_declarator),
       alias($.reference_field_declarator, $.reference_declarator),
@@ -1253,6 +1275,7 @@ module.exports = grammar(C, {
 
     _abstract_declarator: ($, original) => choice(
       original,
+      alias($._abstract_handle_declarator, $.abstract_pointer_declarator),
       alias($.abstract_annotated_declarator, $.annotated_declarator),
       $.abstract_reference_declarator,
     ),

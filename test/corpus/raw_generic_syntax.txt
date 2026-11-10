@@ -2808,3 +2808,99 @@ Objective-C forward declarations in a header
     (objc_forward_declaration
       (identifier)
       (identifier))))
+
+================================================================================
+C++/CX handle declarators
+================================================================================
+
+Platform::String ^GetMessage(Platform::Exception ^exception);
+void f()
+{
+  auto p = reinterpret_cast<void *>(static_cast<Platform::Object ^>(e));
+}
+struct S
+{
+  Platform::String ^name;
+};
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (qualified_identifier
+      (namespace_identifier)
+      (type_identifier))
+    (pointer_declarator
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (qualified_identifier
+              (namespace_identifier)
+              (type_identifier))
+            (pointer_declarator
+              (identifier)))))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (call_expression
+            (template_function
+              (identifier)
+              (template_argument_list
+                (type_descriptor
+                  (primitive_type)
+                  (abstract_pointer_declarator))))
+            (argument_list
+              (call_expression
+                (template_function
+                  (identifier)
+                  (template_argument_list
+                    (type_descriptor
+                      (qualified_identifier
+                        (namespace_identifier)
+                        (type_identifier))
+                      (abstract_pointer_declarator))))
+                (argument_list
+                  (identifier)))))))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (qualified_identifier
+          (namespace_identifier)
+          (type_identifier))
+        (pointer_declarator
+          (field_identifier))))))
+
+================================================================================
+C++/CX handle in a template argument
+================================================================================
+
+template <typename T>
+struct remove_reference<T ^>
+{
+};
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (struct_specifier
+      (template_type
+        (type_identifier)
+        (template_argument_list
+          (type_descriptor
+            (type_identifier)
+            (abstract_pointer_declarator))))
+      (field_declaration_list))))
