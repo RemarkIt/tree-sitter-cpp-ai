@@ -1527,3 +1527,91 @@ void bind() {
         (call_expression
           (identifier)
           (argument_list))))))
+
+==================
+Annotations after specifiers, before conversion functions and before constructor bodies
+==================
+struct Info {
+    Info(Info const& other) WI_NOEXCEPT
+    {
+        id = other.id;
+    }
+    WI_NODISCARD explicit operator bool() const WI_NOEXCEPT;
+};
+__LIBCPP_NORETURN inline __LIBCPP_VISIBILITY void throw_bad_call() { abort(); }
+inline __LIBCPP_VISIBILITY __LIBCPP_CONSTEXPR const _Tp&(min)(const _Tp& a, const _Tp& b) { return a; }
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (type_identifier)
+              (type_qualifier)
+              (reference_declarator
+                (identifier))))
+          (uncertain_specifier
+            (identifier)))
+        (compound_statement
+          (expression_statement
+            (assignment_expression
+              (identifier)
+              (field_expression
+                (identifier)
+                (field_identifier))))))
+      (declaration
+        (uncertain_specifier
+          (identifier))
+        (explicit_function_specifier)
+        (operator_cast
+          (primitive_type)
+          (abstract_function_declarator
+            (parameter_list)
+            (type_qualifier)
+            (uncertain_specifier
+              (identifier)))))))
+  (function_definition
+    (uncertain_specifier
+      (identifier))
+    (storage_class_specifier)
+    (uncertain_specifier
+      (identifier))
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list)))))
+  (function_definition
+    (storage_class_specifier)
+    (uncertain_specifier
+      (identifier))
+    (uncertain_specifier
+      (identifier))
+    (type_qualifier)
+    (type_identifier)
+    (reference_declarator
+      (function_declarator
+        (parenthesized_declarator
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (type_qualifier)
+            (type_identifier)
+            (reference_declarator
+              (identifier)))
+          (parameter_declaration
+            (type_qualifier)
+            (type_identifier)
+            (reference_declarator
+              (identifier))))))
+    (compound_statement
+      (return_statement
+        (identifier)))))

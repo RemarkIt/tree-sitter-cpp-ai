@@ -1161,3 +1161,79 @@ Table table = {
           (type_identifier)
           (initializer_list
             (number_literal)))))))
+
+==================
+Macro type members, specifier orders and parenthesized declarators keep their readings
+==================
+struct Holder {
+    DECLARE_MEMBER(int) count{};
+    TYPE_OF(x) value{1};
+    Holder(int v) : value(v) {}
+};
+Result static helper(int);
+int (*callback)(int);
+const char& (pick)(const char& a);
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (uncertain_macro_type
+          (identifier)
+          (argument_list
+            (type_descriptor
+              (primitive_type))))
+        (field_identifier)
+        (initializer_list))
+      (field_declaration
+        (uncertain_macro_type
+          (identifier)
+          (argument_list
+            (identifier)))
+        (field_identifier)
+        (initializer_list
+          (number_literal)))
+      (function_definition
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier))))
+        (field_initializer_list
+          (field_initializer
+            (field_identifier)
+            (argument_list
+              (identifier))))
+        (compound_statement))))
+  (declaration
+    (type_identifier)
+    (storage_class_specifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (parenthesized_declarator
+        (pointer_declarator
+          (identifier)))
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)))))
+  (declaration
+    (type_qualifier)
+    (primitive_type)
+    (reference_declarator
+      (function_declarator
+        (parenthesized_declarator
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (type_qualifier)
+            (primitive_type)
+            (reference_declarator
+              (identifier))))))))

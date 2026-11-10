@@ -445,9 +445,11 @@ static bool braces_close_initializer(TSLexer *lexer) {
 
 typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE, LEADING_CALL } MacroShape;
 
+static bool skip_balanced_block(TSLexer *lexer, bool *statements);
+
 /// After `C(...) A` (consumed), with optional arguments of `A` next: true when a member
-/// initializer list or `= default`/`= delete` follows, which ends a constructor declarator with a
-/// suffix annotation `A` and never the declarator `A` of a function-like macro type `C(...)`.
+/// initializer list, `= default`/`= delete` or a body follows, which ends a constructor declarator
+/// with a suffix annotation `A` and never the declarator `A` of a function-like macro type `C(...)`.
 static bool constructor_annotation_follows(TSLexer *lexer) {
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
@@ -461,6 +463,22 @@ static bool constructor_annotation_follows(TSLexer *lexer) {
         return false;
     }
     int32_t c = lexer->lookahead;
+    if (c == '{') {
+        // A body of statements, or `{}` not ending a declaration, follows a constructor; a braced
+        // initializer of a macro type's declarator holds no statements and ends with `;` or `,`.
+        bool statements = false;
+        if (!skip_balanced_block(lexer, &statements)) {
+            return false;
+        }
+        if (statements) {
+            return true;
+        }
+        if (!skip_trivia(lexer, &newline)) {
+            return false;
+        }
+        c = lexer->lookahead;
+        return !lexer->eof(lexer) && c != ';' && c != ',' && c != ')';
+    }
     if (c != ':' && c != '=') {
         return false;
     }
@@ -783,6 +801,7 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
             break;
         }
     }
+    bool pointer = false;
     for (;;) {
         bool newline = false;
         if (!skip_trivia(lexer, &newline) || (newline && !qualified)) {
@@ -790,7 +809,12 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
         }
         if (lexer->lookahead == '*' || lexer->lookahead == '&') {
             advance(lexer);
+            pointer = true;
             continue;
+        }
+        if (lexer->lookahead == '(') {
+            // `T& (name)(...)` or `T (*f)(...)`: after a pointer operator, `(` begins a declarator.
+            return pointer;
         }
         if (!read_word(lexer, &word)) {
             return false;
@@ -834,10 +858,28 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier) {
             continue;
         }
         if (word_in(&word, KEYWORDS)) {
-            return false;
+            // `A explicit operator bool()` declares a conversion function.
+            return after_specifier && word_is(&word, "operator");
         }
         if (after_specifier) {
-            return type_declarator_follows(lexer, false);
+            skip_horizontal_space(lexer);
+            if (!is_identifier_start(lexer->lookahead)) {
+                return type_declarator_follows(lexer, false);
+            }
+            // `A inline B void f()`: a keyword type or specifier after `B` makes `B` an annotation
+            // too; a cv-qualifier or calling convention continues `B` as the type.
+            Word next;
+            read_word(lexer, &next);
+            if (word_in(&next, TYPE_KEYWORDS)) {
+                return true;
+            }
+            if (word_is(&next, "const") || word_is(&next, "volatile") || word_in(&next, CALLING_CONVENTIONS)) {
+                return type_declarator_follows(lexer, false);
+            }
+            if (word_in(&next, SPECIFIER_KEYWORDS)) {
+                continue;
+            }
+            return !word_in(&next, KEYWORDS) || word_is(&next, "operator");
         }
         skip_horizontal_space(lexer);
         if (lexer->lookahead == ':' || lexer->lookahead == '<') {

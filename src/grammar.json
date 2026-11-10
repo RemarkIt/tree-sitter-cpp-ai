@@ -15036,6 +15036,15 @@
         {
           "type": "SYMBOL",
           "name": "explicit_function_specifier"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_leading_uncertain_specifier"
+          },
+          "named": true,
+          "value": "uncertain_specifier"
         }
       ]
     },

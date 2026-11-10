@@ -377,6 +377,11 @@
       {"name": "release", "definition": false, "return_type": "void", "source": "void release(int handle);"},
       {"name": "bind", "source": "int bind(int handle) {\n    SCOPE_EXIT {\n        release(handle);\n    };\n    int bound = handle + 1;\n    return bound;\n}"},
       {"name": "bound", "kind": "variable", "owner": ["bind"], "source": "int bound = handle + 1;"}
+    ]},
+    {"id": "annotation-tails", "family": "annotation", "required": true, "file": "annotation_tails.cpp", "symbols": [
+      {"name": "id", "kind": "variable", "owner": ["Info"], "source": "int id;"},
+      {"name": "Info", "owner": ["Info"], "return_type": null, "source": "Info(Info const& other) NOEXCEPT_MACRO\n    {\n        id = other.id;\n    }"},
+      {"name": "stop", "return_type": "void", "source": "NORETURN inline VISIBLE void stop() { __builtin_trap(); }"}
     ]}
   ]
 }

@@ -1001,9 +1001,12 @@ module.exports = grammar(C, {
       ),
     ),
 
+    // A certified leading annotation may also precede a constructor or conversion function, as in
+    // `WI_NODISCARD explicit operator bool() const`.
     _constructor_specifiers: $ => choice(
       $._declaration_modifiers,
       $.explicit_function_specifier,
+      alias($._leading_uncertain_specifier, $.uncertain_specifier),
     ),
 
     operator_cast_definition: $ => seq(
