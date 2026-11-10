@@ -2984,3 +2984,72 @@ static_assert(0 COUNT(A, B) == 24, "count");
       (number_literal))
     (string_literal
       (string_content))))
+
+================================================================================
+Annotation calls and bare annotations mixed in parameters
+================================================================================
+
+HRESULT f(
+    _In_ _In_range_(1, MAX) size_t cchMax,
+    _Pre_satisfies_(cchDest > 0) _In_ size_t cchDest);
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier))
+          (uncertain_specifier
+            (identifier)
+            (uncertain_arguments))
+          (primitive_type)
+          (identifier))
+        (parameter_declaration
+          (uncertain_specifier
+            (identifier)
+            (uncertain_arguments))
+          (uncertain_specifier
+            (identifier))
+          (primitive_type)
+          (identifier))))))
+
+================================================================================
+Annotation chain on lines of its own after inline
+================================================================================
+
+WI_NODISCARD
+inline _IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_saves_
+_IRQL_raises_(DISPATCH_LEVEL)
+guard acquire(PKSPIN_LOCK lock)
+{
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (uncertain_macro_invocation
+    (identifier))
+  (function_definition
+    (storage_class_specifier)
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (uncertain_specifier
+      (identifier))
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier))))
+    (compound_statement)))

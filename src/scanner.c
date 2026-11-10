@@ -480,16 +480,23 @@ static bool skip_balanced_block(TSLexer *lexer, bool *statements);
 static bool call_annotation_keyword_follows(TSLexer *lexer, const Word *word);
 static bool type_declarator_follows(TSLexer *lexer, bool qualified);
 static bool constructor_initializers_follow(TSLexer *lexer);
+static bool constructor_or_annotation_call_follows(TSLexer *lexer);
+static bool annotation_chain_follows(TSLexer *lexer);
 static bool macro_header_follows(TSLexer *lexer, bool expression_possible);
 
 /// At the `(` after a word: `M(a, b)(params) suffixes;`, a macro header as `macro_header_follows`
-/// describes, which may follow annotations.
+/// describes, which may follow annotations, or another annotation call in a chain of them.
 static bool macro_header_call_follows(TSLexer *lexer) {
     bool non_parameter = false;
     bool several = false;
     bool newline = false;
-    return skip_balanced_list(lexer, &non_parameter, &several) && several && !non_parameter &&
-           skip_trivia(lexer, &newline) && lexer->lookahead == '(' && macro_header_follows(lexer, false);
+    if (!skip_balanced_list(lexer, &non_parameter, &several) || !skip_trivia(lexer, &newline)) {
+        return false;
+    }
+    if (lexer->lookahead == '(') {
+        return several && !non_parameter && macro_header_follows(lexer, false);
+    }
+    return annotation_chain_follows(lexer);
 }
 
 /// Sets `initializers` when a member initializer list follows. With `annotation`, after `A(...) B(...)`
@@ -1005,7 +1012,10 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
         if (word_is(&word, "const") || word_is(&word, "volatile") || word_in(&word, CALLING_CONVENTIONS)) {
             continue;
         }
-        return !word_in(&word, KEYWORDS) || word_is(&word, "operator") || is_contextual_name(&word);
+        // A keyword type after the scanned words, as in `A(x) _In_ size_t n`, shows they were all
+        // annotations.
+        return !word_in(&word, KEYWORDS) || word_in(&word, TYPE_KEYWORDS) || word_is(&word, "operator") ||
+               is_contextual_name(&word);
     }
 }
 
@@ -1013,6 +1023,72 @@ static bool type_declarator_follows(TSLexer *lexer, bool qualified) {
 /// a member initializer list's single `:`, which only a constructor declarator can end with, as in
 /// `FORCE_INLINE Ref(T *p) : ptr(p) {}`. A body alone stays unclaimed: `A B(...) {}` may still be a
 /// function `B` returning `A`.
+/// After a word directly followed by `(` in an annotation tail: `B(params) suffixes : init` is a
+/// constructor, and `B(args)` an annotation call when, after further annotations, possibly on the
+/// next lines, a keyword type or a type and its declarator follow, as in `_In_ _In_range_(1, N)
+/// size_t n` or `inline _IRQL_requires_max_(L)` / `_Acquires_lock_(l)` / `T f(...)`.
+static bool annotation_chain_follows(TSLexer *lexer);
+
+static bool constructor_or_annotation_call_follows(TSLexer *lexer) {
+    bool non_parameter = false;
+    return skip_balanced_arguments(lexer, &non_parameter) && annotation_chain_follows(lexer);
+}
+
+/// After an annotation call's arguments: more annotations, then constructor initializers, a keyword
+/// type, or a type and its declarator.
+static bool annotation_chain_follows(TSLexer *lexer) {
+    bool non_parameter = false;
+    bool newline = false;
+    Word word;
+    for (unsigned words = 0; words <= MAX_SUFFIX_WORDS; words++) {
+        if (!skip_trivia(lexer, &newline)) {
+            return false;
+        }
+        if (lexer->lookahead == ':') {
+            advance(lexer);
+            return lexer->lookahead != ':';
+        }
+        if (!read_word(lexer, &word)) {
+            return false;
+        }
+        if (word_in(&word, TYPE_KEYWORDS)) {
+            return true;
+        }
+        bool keyword = word_in(&word, KEYWORDS);
+        if (keyword && !word_in(&word, DECLARATOR_SUFFIX_WORDS)) {
+            return false;
+        }
+        skip_horizontal_space(lexer);
+        int32_t c = lexer->lookahead;
+        if (c == '(') {
+            if (!skip_balanced_arguments(lexer, &non_parameter)) {
+                return false;
+            }
+            continue;
+        }
+        if (keyword || c == '\n' || c == '\r' || c == '/') {
+            // A suffix such as `noexcept`, or an annotation ending its line: more follows.
+            continue;
+        }
+        if (c == ':') {
+            advance(lexer);
+            if (lexer->lookahead != ':') {
+                // `B(params) WI_NOEXCEPT : init`: a suffix macro, then the initializers.
+                return true;
+            }
+            advance(lexer);
+            skip_horizontal_space(lexer);
+            Word scope;
+            if (!read_word(lexer, &scope) || (word_in(&scope, KEYWORDS) && !word_in(&scope, TYPE_KEYWORDS))) {
+                return false;
+            }
+            return type_declarator_follows(lexer, true);
+        }
+        return (is_identifier_start(c) || c == '*' || c == '&' || c == '<') && type_declarator_follows(lexer, c == '<');
+    }
+    return false;
+}
+
 static bool constructor_initializers_follow(TSLexer *lexer) {
     bool non_parameter = false;
     bool newline = false;
@@ -1106,7 +1182,12 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
                 return true;
             }
             if (!word_in(&word, KEYWORDS)) {
-                // `MACRO` alone on its line, then `T f(...)`: a type and its declarator.
+                // `MACRO` alone on its line, then `T f(...)`: a type and its declarator, or
+                // another annotation call continuing the chain.
+                skip_horizontal_space(lexer);
+                if (lexer->lookahead == '(') {
+                    return constructor_or_annotation_call_follows(lexer);
+                }
                 return type_declarator_follows(lexer, false);
             }
             if (word_is(&word, "__declspec") && !skip_declspec_arguments(lexer)) {
@@ -1164,7 +1245,7 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
         if (after_specifier) {
             skip_horizontal_space(lexer);
             if (lexer->lookahead == '(') {
-                return constructor_initializers_follow(lexer);
+                return constructor_or_annotation_call_follows(lexer);
             }
             if (class_key != NULL && declspecs > 0 && first_other) {
                 // `A __declspec(uuid(...)) Name : public B` or `... Name {` with members: no type is
@@ -1213,7 +1294,7 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
             return type_declarator_follows(lexer, true);
         }
         if (lexer->lookahead == '(') {
-            return constructor_initializers_follow(lexer);
+            return constructor_or_annotation_call_follows(lexer);
         }
         plain_before = true;
     }
@@ -1355,9 +1436,13 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
     // `A static B x` declares with its own type `B`, so `A` cannot be a type either.
     skip_horizontal_space(lexer);
     if (lexer->lookahead == '(') {
-        // A member initializer list after `B(...)` ends only a constructor declarator.
+        // A member initializer list after `B(...)` ends only a constructor declarator. After a
+        // specifier, `B(...)` may also annotate the declaration that follows it.
+        if (specified) {
+            return constructor_or_annotation_call_follows(lexer);
+        }
         MacroShape shape = classify_macro_call(lexer, false, true, false, true);
-        return shape == CONSTRUCTOR_HEAD || (!specified && shape == MACRO_INVOCATION);
+        return shape == CONSTRUCTOR_HEAD || shape == MACRO_INVOCATION;
     }
     for (;;) {
         skip_horizontal_space(lexer);
