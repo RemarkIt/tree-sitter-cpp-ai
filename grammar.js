@@ -2436,9 +2436,13 @@ module.exports = grammar(C, {
     // `TEXT("a") TEXT("b")` or `DEFAULT_A(x) DEFAULT_B(y)`. Only unexpanded macros juxtapose like
     // this; whether they concatenate or select is unknown, so the region stays labeled. Every
     // ordinary reading, such as the casts in `(A)(B)c`, wins over this one.
-    uncertain_concatenation: $ => prec.dynamic(-3, prec.right(PREC.CALL, seq(
-      $.call_expression,
-      repeat1(choice($.string_literal, $.raw_string_literal, $._juxtaposed_call)),
+    uncertain_concatenation: $ => prec.dynamic(-3, prec.right(PREC.CALL, choice(
+      seq(
+        $.call_expression,
+        repeat1(choice($.string_literal, $.raw_string_literal, $._juxtaposed_call)),
+      ),
+      // `0 COUNT(X)`, where `COUNT` expands to `+1 +1 ...`: no word follows a number otherwise.
+      seq($.number_literal, repeat1($._juxtaposed_call)),
     ))),
 
     // The scanner certifies the callee only when balanced arguments follow it, and never a keyword.

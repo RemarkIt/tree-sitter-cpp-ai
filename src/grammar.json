@@ -21976,31 +21976,52 @@
         "type": "PREC_RIGHT",
         "value": 15,
         "content": {
-          "type": "SEQ",
+          "type": "CHOICE",
           "members": [
             {
-              "type": "SYMBOL",
-              "name": "call_expression"
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "call_expression"
+                },
+                {
+                  "type": "REPEAT1",
+                  "content": {
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "string_literal"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "raw_string_literal"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_juxtaposed_call"
+                      }
+                    ]
+                  }
+                }
+              ]
             },
             {
-              "type": "REPEAT1",
-              "content": {
-                "type": "CHOICE",
-                "members": [
-                  {
-                    "type": "SYMBOL",
-                    "name": "string_literal"
-                  },
-                  {
-                    "type": "SYMBOL",
-                    "name": "raw_string_literal"
-                  },
-                  {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "SYMBOL",
+                  "name": "number_literal"
+                },
+                {
+                  "type": "REPEAT1",
+                  "content": {
                     "type": "SYMBOL",
                     "name": "_juxtaposed_call"
                   }
-                ]
-              }
+                }
+              ]
             }
           ]
         }

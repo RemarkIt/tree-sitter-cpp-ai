@@ -2963,3 +2963,24 @@ interface __declspec(uuid("e")) ITest : public IUnknown
           (field_identifier)
           (parameter_list))
         (number_literal)))))
+
+================================================================================
+Number juxtaposed with a macro call
+================================================================================
+
+static_assert(0 COUNT(A, B) == 24, "count");
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (static_assert_declaration
+    (binary_expression
+      (uncertain_concatenation
+        (number_literal)
+        (identifier)
+        (call_expression
+          (identifier)
+          (identifier)))
+      (number_literal))
+    (string_literal
+      (string_content))))
