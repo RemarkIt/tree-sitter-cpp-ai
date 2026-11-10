@@ -1318,3 +1318,47 @@ void f() {
             (compound_statement
               (return_statement
                 (number_literal)))))))))
+
+==================
+Functional and braced casts to decltype
+==================
+void h() {
+  qDeleteAll(decltype(m_children)(m_children));
+  auto c = decltype(x){y};
+  ptr = decltype(wrl2)(wrl2);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (call_expression
+              (decltype
+                (identifier))
+              (argument_list
+                (identifier))))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (compound_literal_expression
+            (decltype
+              (identifier))
+            (initializer_list
+              (identifier)))))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (call_expression
+            (decltype
+              (identifier))
+            (argument_list
+              (identifier))))))))

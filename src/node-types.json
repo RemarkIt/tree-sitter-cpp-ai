@@ -1349,6 +1349,10 @@
         "required": false,
         "types": [
           {
+            "type": "decltype",
+            "named": true
+          },
+          {
             "type": "dependent_type",
             "named": true
           },
@@ -1757,6 +1761,10 @@
         "multiple": true,
         "required": true,
         "types": [
+          {
+            "type": "decltype",
+            "named": true
+          },
           {
             "type": "primitive_type",
             "named": true

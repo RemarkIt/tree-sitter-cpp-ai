@@ -451,6 +451,20 @@
         {"name": "total", "kind": "variable", "owner": ["run"], "source": "int total = apply([](int x) CALL_CONVENTION { return x + 1; }, seed);"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "decltype-casts",
+      "family": "expressions",
+      "required": true,
+      "file": "decltype_casts.cpp",
+      "symbols": [
+        {"name": "size", "kind": "variable", "owner": ["Box"], "source": "int size;"},
+        {"name": "measure", "source": "int measure(Box box) {\n    return box.size;\n}"},
+        {"name": "copy_size", "source": "int copy_size(Box box) {\n    int copied = measure(decltype(box)(box));\n    auto empty = decltype(box){};\n    decltype(box)(other);\n    return copied + empty.size + other.size;\n}"},
+        {"name": "copied", "kind": "variable", "owner": ["copy_size"], "source": "int copied = measure(decltype(box)(box));"},
+        {"name": "empty", "kind": "variable", "owner": ["copy_size"], "source": "auto empty = decltype(box){};"},
+        {"name": "other", "kind": "variable", "owner": ["copy_size"], "source": "decltype(box)(other);"}
+      ]
     }
   ]
 }

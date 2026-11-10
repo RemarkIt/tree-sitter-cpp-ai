@@ -1950,3 +1950,106 @@ void f() {
             (compound_statement
               (return_statement
                 (identifier)))))))))
+
+==================
+decltype declarations, nested names and operands keep their reading
+==================
+void h() {
+  decltype(x) y = x;
+  decltype(x)(z);
+  decltype(x) (*fp)(int);
+  decltype(a)::type t;
+  using T = decltype(f(1));
+  auto g() -> decltype(x);
+  int n = sizeof(decltype(x));
+}
+template <class T> auto w(T v) -> decltype(v.size()) { return v.size(); }
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (declaration
+        (decltype
+          (identifier))
+        (init_declarator
+          (identifier)
+          (identifier)))
+      (declaration
+        (decltype
+          (identifier))
+        (parenthesized_declarator
+          (identifier)))
+      (declaration
+        (decltype
+          (identifier))
+        (function_declarator
+          (parenthesized_declarator
+            (pointer_declarator
+              (identifier)))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)))))
+      (declaration
+        (qualified_identifier
+          (decltype
+            (identifier))
+          (type_identifier))
+        (identifier))
+      (alias_declaration
+        (type_identifier)
+        (type_descriptor
+          (decltype
+            (call_expression
+              (identifier)
+              (argument_list
+                (number_literal))))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (function_declarator
+          (identifier)
+          (parameter_list)
+          (trailing_return_type
+            (type_descriptor
+              (decltype
+                (identifier))))))
+      (declaration
+        (primitive_type)
+        (init_declarator
+          (identifier)
+          (sizeof_expression
+            (type_descriptor
+              (decltype
+                (identifier))))))))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier)))
+    (function_definition
+      (placeholder_type_specifier
+        (auto))
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier)
+            (identifier)))
+        (trailing_return_type
+          (type_descriptor
+            (decltype
+              (call_expression
+                (field_expression
+                  (identifier)
+                  (field_identifier))
+                (argument_list))))))
+      (compound_statement
+        (return_statement
+          (call_expression
+            (field_expression
+              (identifier)
+              (field_identifier))
+            (argument_list)))))))

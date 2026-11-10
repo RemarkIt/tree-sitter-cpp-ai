@@ -1625,6 +1625,12 @@ module.exports = grammar(C, {
         field('function', alias(choice('signed', 'unsigned', 'long', 'short'), $.primitive_type)),
         field('arguments', $.argument_list),
       )),
+      // Likewise `decltype(v)(v)` copies `v` in `qDeleteAll(decltype(v)(v))`, while a statement
+      // `decltype(v)(w);` declares `w`.
+      prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
+        field('function', $.decltype),
+        field('arguments', $.argument_list),
+      )),
       // `operator=(x)` and `operator""_s(x)` call an operator function by name. A declaration
       // naming the operator still wins.
       prec.dynamic(PREC.PAREN_DECLARATOR * 2, seq(
@@ -2058,6 +2064,7 @@ module.exports = grammar(C, {
         field('type', choice(
           $._class_name,
           $.primitive_type,
+          $.decltype,
           seq(optional('typename'), $.splice_type_specifier))),
         field('value', $.initializer_list),
       ),

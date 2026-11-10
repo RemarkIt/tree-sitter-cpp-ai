@@ -9921,6 +9921,31 @@
                 "name": "function",
                 "content": {
                   "type": "SYMBOL",
+                  "name": "decltype"
+                }
+              },
+              {
+                "type": "FIELD",
+                "name": "arguments",
+                "content": {
+                  "type": "SYMBOL",
+                  "name": "argument_list"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "PREC_DYNAMIC",
+          "value": -20,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "FIELD",
+                "name": "function",
+                "content": {
+                  "type": "SYMBOL",
                   "name": "operator_name"
                 }
               },
@@ -10915,6 +10940,10 @@
                   {
                     "type": "SYMBOL",
                     "name": "primitive_type"
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "decltype"
                   },
                   {
                     "type": "SEQ",
