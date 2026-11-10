@@ -6389,6 +6389,41 @@
               "name": "access_specifier"
             },
             {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_access_annotation"
+                  },
+                  "named": true,
+                  "value": "uncertain_specifier"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "STRING",
+              "value": ":"
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_section_annotation"
+              },
+              "named": true,
+              "value": "uncertain_specifier"
+            },
+            {
               "type": "STRING",
               "value": ":"
             }
@@ -15298,6 +15333,19 @@
         }
       ]
     },
+    "_access_annotation": {
+      "type": "SYMBOL",
+      "name": "identifier"
+    },
+    "_section_annotation": {
+      "type": "ALIAS",
+      "content": {
+        "type": "SYMBOL",
+        "name": "_section_label"
+      },
+      "named": true,
+      "value": "identifier"
+    },
     "access_specifier": {
       "type": "CHOICE",
       "members": [
@@ -20728,6 +20776,10 @@
     {
       "type": "SYMBOL",
       "name": "_preproc_raw_argument"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_section_label"
     },
     {
       "type": "SYMBOL",

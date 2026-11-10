@@ -23,6 +23,7 @@ enum TokenType {
     FUNCTION_SUFFIX_ANNOTATION,
     JUXTAPOSED_CALLEE,
     PREPROC_RAW_ARGUMENT,
+    SECTION_LABEL,
     IDENTIFIER,
     LITERAL_SUFFIX,
 };
@@ -1137,12 +1138,29 @@ static bool scan_preproc_raw_argument(TSLexer *lexer) {
 }
 
 /// Certify the identifier just read, whose end is marked, as an annotation or macro token.
+/// At a class member's start, after a word and before its `:`: certify the word as a section
+/// label, a macro standing for an access specifier as in Qt's `signals:`, when a single `:` ends
+/// the line. An unnamed bit-field `T : 3;` has its width on the same line, and no other member
+/// starts with a word and a single `:`.
+static bool section_label_follows(TSLexer *lexer) {
+    advance(lexer);
+    if (lexer->lookahead == ':') {
+        return false;
+    }
+    bool newline = false;
+    return skip_trivia(lexer, &newline) && (newline || lexer->eof(lexer));
+}
+
 static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols, bool newline_before) {
     if (valid_symbols[FUNCTION_SUFFIX_ANNOTATION]) {
         lexer->result_symbol = FUNCTION_SUFFIX_ANNOTATION;
         return function_suffix_follows(lexer);
     }
     skip_horizontal_space(lexer);
+    if (lexer->lookahead == ':' && valid_symbols[SECTION_LABEL]) {
+        lexer->result_symbol = SECTION_LABEL;
+        return section_label_follows(lexer);
+    }
     if (lexer->lookahead == '(') {
         if (valid_symbols[JUXTAPOSED_CALLEE]) {
             // After a call expression nothing ordinary can begin with a word, so `A(x) B(y)` juxtaposes
@@ -1322,7 +1340,8 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
     bool identifier_tokens = valid_symbols[LEADING_ANNOTATION] || valid_symbols[DECLARATOR_ANNOTATION] ||
                              valid_symbols[MACRO_INVOCATION_CALLEE] || valid_symbols[MACRO_TYPE_CALLEE] ||
                              valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION] ||
-                             valid_symbols[FUNCTION_SUFFIX_ANNOTATION] || valid_symbols[JUXTAPOSED_CALLEE];
+                             valid_symbols[FUNCTION_SUFFIX_ANNOTATION] || valid_symbols[JUXTAPOSED_CALLEE] ||
+                             valid_symbols[SECTION_LABEL];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {

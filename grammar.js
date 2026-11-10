@@ -210,6 +210,9 @@ module.exports = grammar(C, {
     $._juxtaposed_callee,
     // A conditional directive's macro argument holding tokens no expression can, as in `F(?)`.
     $._preproc_raw_argument,
+    // At a class member's start: `S` in `S:` ending its line, a macro standing for an access
+    // specifier such as Qt's `signals:`. An unnamed bit-field always has its width on the line.
+    $._section_label,
     // Returned for words the scanner has already read, so they are not lexed twice.
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
@@ -935,7 +938,8 @@ module.exports = grammar(C, {
       alias($.operator_cast_definition, $.function_definition),
       alias($.operator_cast_declaration, $.declaration),
       $.friend_declaration,
-      seq($.access_specifier, ':'),
+      seq($.access_specifier, optional(alias($._access_annotation, $.uncertain_specifier)), ':'),
+      seq(alias($._section_annotation, $.uncertain_specifier), ':'),
       $.alias_declaration,
       $.using_declaration,
       $.type_definition,
@@ -1047,6 +1051,12 @@ module.exports = grammar(C, {
         ),
       ),
     ),
+
+    // A word between an access specifier and its `:`, as in Qt's `public slots:`, can only be
+    // a macro; nothing else may appear there.
+    _access_annotation: $ => $.identifier,
+
+    _section_annotation: $ => alias($._section_label, $.identifier),
 
     access_specifier: _ => choice(
       'public',

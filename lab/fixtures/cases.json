@@ -315,6 +315,14 @@
       {"name": "feature_level", "kind": "variable", "source": "int feature_level = 1;"},
       {"name": "run", "source": "int run(int value) {\n    if (value < 0)\n        goto done;\n    value++;\n#if defined(TRACE_EXIT)\ndone:\n#endif\n    return value;\n}"},
       {"name": "finish", "return_type": "void", "source": "void finish(int value) {\n    if (value)\n        goto end;\n    value = 0;\nend:\n}"}
+    ]},
+    {"id": "macro-access-sections", "family": "annotation", "required": true, "file": "qt_sections.cpp", "symbols": [
+      {"name": "value", "owner": ["Session"], "return_type": "int", "source": "int value() { return 1; }"},
+      {"name": "changed", "owner": ["Session"], "definition": false, "return_type": "void", "source": "void changed(int value);"},
+      {"name": "refresh", "owner": ["Session"], "return_type": "void", "source": "void refresh() {}"},
+      {"name": "onTimeout", "owner": ["Session"], "return_type": "void", "source": "void onTimeout() {}"},
+      {"name": "finished", "owner": ["Session"], "definition": false, "return_type": "void", "source": "void finished();"},
+      {"name": "count", "owner": ["Session"], "return_type": "int", "source": "int count() { return 2; }"}
     ]}
   ]
 }

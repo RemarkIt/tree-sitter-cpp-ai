@@ -887,3 +887,75 @@ end:
       (preproc_def
         (identifier)
         (preproc_arg)))))
+
+==================
+Macro access sections in class bodies
+==================
+class Session : public QObject {
+  Q_OBJECT
+public:
+  explicit Session(QObject *parent = nullptr);
+signals:
+  void changed(int value);
+public slots:
+  void refresh();
+private Q_SLOTS: // timers
+  void onTimeout();
+Q_SIGNALS:
+  void finished();
+};
+---
+(translation_unit
+  (class_specifier
+    (type_identifier)
+    (base_class_clause
+      (access_specifier)
+      (type_identifier))
+    (field_declaration_list
+      (uncertain_macro_invocation
+        (identifier))
+      (access_specifier)
+      (declaration
+        (explicit_function_specifier)
+        (function_declarator
+          (identifier)
+          (parameter_list
+            (optional_parameter_declaration
+              (type_identifier)
+              (pointer_declarator
+                (identifier))
+              (null)))))
+      (uncertain_specifier
+        (identifier))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))
+      (access_specifier)
+      (uncertain_specifier
+        (identifier))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)))
+      (access_specifier)
+      (uncertain_specifier
+        (identifier))
+      (comment)
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)))
+      (uncertain_specifier
+        (identifier))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list))))))
