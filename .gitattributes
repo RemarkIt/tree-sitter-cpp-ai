@@ -1,4 +1,6 @@
 * text=auto eol=lf
+# Corpus tests whose inputs must keep CRLF line endings
+test/corpus/crlf.txt -text
 
 # Generated source files
 src/*.json linguist-generated
