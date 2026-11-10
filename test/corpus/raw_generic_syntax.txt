@@ -2371,3 +2371,23 @@ NAMESPACE_END
       (identifier))
     (uncertain_macro_invocation
       (identifier))))
+
+================================================================================
+Raw string delimiter of the maximum 16 characters
+================================================================================
+
+const char *s = R"abcdefghijklmnop()abcdefghijklmno)abcdefghijklmnop";
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (declaration
+    (type_qualifier)
+    (primitive_type)
+    (init_declarator
+      (pointer_declarator
+        (identifier))
+      (raw_string_literal
+        (raw_string_delimiter)
+        (raw_string_content)
+        (raw_string_delimiter)))))
