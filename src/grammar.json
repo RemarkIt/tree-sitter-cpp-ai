@@ -4718,7 +4718,7 @@
           },
           {
             "type": "SYMBOL",
-            "name": "_abstract_declarator"
+            "name": "_abstract_declarator_or_member_pointer"
           },
           {
             "type": "STRING",
@@ -7037,7 +7037,7 @@
                   },
                   {
                     "type": "SYMBOL",
-                    "name": "_abstract_declarator"
+                    "name": "_abstract_declarator_or_member_pointer"
                   }
                 ]
               }
@@ -9469,7 +9469,7 @@
               "members": [
                 {
                   "type": "SYMBOL",
-                  "name": "_abstract_declarator"
+                  "name": "_abstract_declarator_or_member_pointer"
                 },
                 {
                   "type": "BLANK"
@@ -15774,6 +15774,60 @@
         }
       ]
     },
+    "_abstract_declarator_or_member_pointer": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "_abstract_declarator"
+          },
+          {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "abstract_member_pointer_declarator"
+            },
+            "named": true,
+            "value": "abstract_pointer_declarator"
+          }
+        ]
+      }
+    },
+    "abstract_member_pointer_declarator": {
+      "type": "PREC_DYNAMIC",
+      "value": 1,
+      "content": {
+        "type": "PREC_RIGHT",
+        "value": 0,
+        "content": {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_member_pointer_scope"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_scope_resolution"
+            },
+            {
+              "type": "STRING",
+              "value": "*"
+            },
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SYMBOL",
+                "name": "type_qualifier"
+              }
+            }
+          ]
+        }
+      }
+    },
     "_member_pointer_field_declarator": {
       "type": "PREC_DYNAMIC",
       "value": 1,
@@ -21538,6 +21592,10 @@
     {
       "type": "SYMBOL",
       "name": "literal_suffix"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_member_pointer_scope"
     }
   ],
   "inline": [

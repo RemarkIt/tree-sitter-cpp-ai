@@ -228,6 +228,9 @@ module.exports = grammar(C, {
     $.identifier,
     // Never produced: its validity marks where a word could instead be a literal suffix.
     $.literal_suffix,
+    // Zero-width, before the scope of an unnamed pointer to member: certified by `::*` and a token
+    // ending the type after it, so `T name` in a type-id never forks a member-pointer reading.
+    $._member_pointer_scope,
   ],
 
   extras: ($, original) => original.concat([
@@ -508,7 +511,12 @@ module.exports = grammar(C, {
       'consteval',
     ),
 
-    type_descriptor: (_, original) => prec.right(original),
+    type_descriptor: $ => prec.right(seq(
+      repeat($.type_qualifier),
+      field('type', $.type_specifier),
+      repeat($.type_qualifier),
+      field('declarator', optional($._abstract_declarator_or_member_pointer)),
+    )),
 
     attribute: ($, original) => seq(
       optional(seq('using', field('namespace', $.identifier), ':')),
@@ -1179,6 +1187,37 @@ module.exports = grammar(C, {
       alias($.abstract_annotated_declarator, $.annotated_declarator),
       $.abstract_reference_declarator,
     ),
+
+    // Where an unnamed pointer to member may stand: the whole declarator of a type-id or a
+    // parameter, or inside parentheses. Not after `*` or `&`, where an identifier would give error
+    // recovery new paths through parameter lists.
+    _abstract_declarator_or_member_pointer: $ => prec.right(choice(
+      $._abstract_declarator,
+      alias($.abstract_member_pointer_declarator, $.abstract_pointer_declarator),
+    )),
+
+    parameter_declaration: $ => seq(
+      $._declaration_specifiers,
+      optional(field('declarator', choice($._declarator, $._abstract_declarator_or_member_pointer))),
+      repeat($.attribute_specifier),
+    ),
+
+    abstract_parenthesized_declarator: $ => prec(1, seq(
+      '(',
+      optional($.ms_call_modifier),
+      $._abstract_declarator_or_member_pointer,
+      ')',
+    )),
+
+    // Unnamed pointers to members in type-ids: `X<int S::*>`, `using F = void (S::*)(int) const;`.
+    abstract_member_pointer_declarator: $ => prec.dynamic(1, prec.right(seq(
+      $._member_pointer_scope,
+      $._scope_resolution,
+      '*',
+      repeat($.type_qualifier),
+      // Nothing nested: `R (S::*)(A)` puts the parameters outside the parentheses, and a nested
+      // declarator would compete with upstream's `S::*name` reading in template parameters.
+    ))),
 
     // Pointers to members among members: `int C::*p;` and `void (C::*f)(int);`. Namespace-scope
     // declarators keep upstream's reading; the abstract `T C::*` stays unsupported, since it

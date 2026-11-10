@@ -524,6 +524,18 @@
         {"name": "release", "return_type": "void", "source": "void release(int count) = delete;"},
         {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
       ]
+    },
+    {
+      "id": "member-pointer-types",
+      "family": "declarations",
+      "required": true,
+      "file": "member_pointer_types.cpp",
+      "symbols": [
+        {"name": "value", "kind": "variable", "owner": ["Box"], "source": "int value;"},
+        {"name": "probe", "return_type": "char", "definition": false, "source": "char probe(int Box::*);"},
+        {"name": "read", "return_type": "int", "source": "int read(const Box& b, int Box::* field) { return b.*field; }"},
+        {"name": "after", "source": "int after(int x) {\n    return x;\n}"}
+      ]
     }
   ]
 }

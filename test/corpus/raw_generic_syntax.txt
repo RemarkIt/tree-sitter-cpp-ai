@@ -1642,3 +1642,88 @@ public:
               (argument_list
                 (number_literal))))
           (compound_statement))))))
+
+==================
+Unnamed pointers to members in type-ids
+==================
+template <class R, class C>
+struct traits<R C::*, false> {};
+
+template <class R, class C, class... A>
+struct traits<R (C::*)(A..., ...) const volatile &&, true> {};
+
+using F = void (T::*)(int);
+using G = int S::* const;
+char test(int T::*);
+---
+(translation_unit
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier))
+      (type_parameter_declaration
+        (type_identifier)))
+    (struct_specifier
+      (template_type
+        (type_identifier)
+        (template_argument_list
+          (type_descriptor
+            (type_identifier)
+            (abstract_pointer_declarator
+              (namespace_identifier)))
+          (false)))
+      (field_declaration_list)))
+  (template_declaration
+    (template_parameter_list
+      (type_parameter_declaration
+        (type_identifier))
+      (type_parameter_declaration
+        (type_identifier))
+      (variadic_type_parameter_declaration
+        (type_identifier)))
+    (struct_specifier
+      (template_type
+        (type_identifier)
+        (template_argument_list
+          (type_descriptor
+            (type_identifier)
+            (abstract_function_declarator
+              (abstract_parenthesized_declarator
+                (abstract_pointer_declarator
+                  (namespace_identifier)))
+              (parameter_list
+                (variadic_parameter_declaration
+                  (type_identifier)
+                  (variadic_declarator)))
+              (type_qualifier)
+              (type_qualifier)
+              (ref_qualifier)))
+          (true)))
+      (field_declaration_list)))
+  (alias_declaration
+    (type_identifier)
+    (type_descriptor
+      (primitive_type)
+      (abstract_function_declarator
+        (abstract_parenthesized_declarator
+          (abstract_pointer_declarator
+            (namespace_identifier)))
+        (parameter_list
+          (parameter_declaration
+            (primitive_type))))))
+  (alias_declaration
+    (type_identifier)
+    (type_descriptor
+      (primitive_type)
+      (abstract_pointer_declarator
+        (namespace_identifier)
+        (type_qualifier))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (abstract_pointer_declarator
+            (namespace_identifier)))))))

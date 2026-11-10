@@ -30,6 +30,7 @@ enum TokenType {
     TEMPLATE_ARGUMENT_PROBE,
     IDENTIFIER,
     LITERAL_SUFFIX,
+    MEMBER_POINTER_SCOPE,
 };
 
 /// The spec limits delimiters to 16 chars
@@ -1542,6 +1543,42 @@ static bool dependent_cast_follows(TSLexer *lexer) {
     return qualified && lexer->lookahead == '(';
 }
 
+/// After a word: the rest of an unnamed pointer to member, `::*` or `::B::*`, then cv-qualifiers and
+/// a token that ends the type, as in `X<R C::*>` or `R (C::*)()`. A name after the `*` leaves
+/// `S::*p` to the named declarator, and a word followed by anything else stays an identifier.
+static bool member_pointer_follows(TSLexer *lexer) {
+    Word word;
+    for (;;) {
+        if (lexer->lookahead != ':') {
+            return false;
+        }
+        advance(lexer);
+        if (lexer->lookahead != ':') {
+            return false;
+        }
+        advance(lexer);
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == '*') {
+            break;
+        }
+        if (!read_word(lexer, &word) || word_in(&word, KEYWORDS)) {
+            return false;
+        }
+    }
+    advance(lexer);
+    for (;;) {
+        skip_horizontal_space(lexer);
+        if (!is_identifier_start(lexer->lookahead)) {
+            break;
+        }
+        if (!read_word(lexer, &word) || !(word_is(&word, "const") || word_is(&word, "volatile"))) {
+            return false;
+        }
+    }
+    int32_t next = lexer->lookahead;
+    return next == ',' || next == ')' || next == '>' || next == ';';
+}
+
 /// One identifier read serves every identifier-based token, because a scan cannot rewind. Where an
 /// identifier is valid, a word that is no certified token is returned as that identifier rather
 /// than read again by the lexer. Only words an ordinary identifier would end at qualify: ASCII,
@@ -1561,6 +1598,11 @@ static bool scan_identifier_token(TSLexer *lexer, const bool *valid_symbols, boo
     }
     if (word_in(&word, KEYWORDS)) {
         return false;
+    }
+    if (valid_symbols[MEMBER_POINTER_SCOPE] && lexer->lookahead == ':') {
+        // Zero-width before the scope. A word followed by `:` is no other scanner token here.
+        lexer->result_symbol = MEMBER_POINTER_SCOPE;
+        return member_pointer_follows(lexer);
     }
     int32_t next = lexer->lookahead;
     bool plain = identifier && !word.non_ascii && next != '"' && next != '\'' && next != '\\';
@@ -1708,7 +1750,8 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
         return true;
     }
     bool conditional_tokens = valid_symbols[PREPROC_INLINE_CONDITIONAL];
-    if (!identifier_tokens && !conditional_tokens && !valid_symbols[IDENTIFIER] && !valid_symbols[TYPENAME_CAST]) {
+    if (!identifier_tokens && !conditional_tokens && !valid_symbols[IDENTIFIER] && !valid_symbols[TYPENAME_CAST] &&
+        !valid_symbols[MEMBER_POINTER_SCOPE]) {
         return false;
     }
     bool newline_before = false;
@@ -1736,7 +1779,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
     }
     // A literal suffix is immediate, so after a space only an identifier can match the word.
     bool identifier = valid_symbols[IDENTIFIER] && (space_before || !valid_symbols[LITERAL_SUFFIX]);
-    if (!identifier_tokens && !identifier && !valid_symbols[TYPENAME_CAST]) {
+    if (!identifier_tokens && !identifier && !valid_symbols[TYPENAME_CAST] && !valid_symbols[MEMBER_POINTER_SCOPE]) {
         return false;
     }
     return scan_identifier_token(lexer, valid_symbols, newline_before, identifier_tokens, identifier);

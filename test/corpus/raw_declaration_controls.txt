@@ -2344,3 +2344,32 @@ void f(int a) {
                 (argument_list
                   (identifier))))
             (break_statement)))))))
+
+==================
+Named pointer-to-member parameters keep the qualified declarator
+==================
+void f(int S::*p);
+int g(int a::b);
+---
+(translation_unit
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (qualified_identifier
+            (namespace_identifier)
+            (pointer_type_declarator
+              (type_identifier)))))))
+  (declaration
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (qualified_identifier
+            (namespace_identifier)
+            (identifier)))))))
