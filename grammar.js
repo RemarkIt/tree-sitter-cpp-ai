@@ -231,6 +231,9 @@ module.exports = grammar(C, {
     // Zero-width, before the scope of an unnamed pointer to member: certified by `::*` and a token
     // ending the type after it, so `T name` in a type-id never forks a member-pointer reading.
     $._member_pointer_scope,
+    // `M` in `M(T, Name)(params) suffixes;`: a macro producing a function header, certified by its
+    // balanced parameters and an ending only a declaration has.
+    $._macro_header_callee,
   ],
 
   extras: ($, original) => original.concat([
@@ -296,6 +299,8 @@ module.exports = grammar(C, {
     // `[[nodiscard]] friend ...`: attributes before `friend` or before a member's specifiers.
     [$._declaration_modifiers, $.friend_declaration, $.using_declaration],
     [$._declaration_modifiers, $.friend_declaration],
+    // A certified macro function header outside classes: a definition or a declaration.
+    [$._constructor_name, $._macro_header_function_declarator],
     // Constructor names compete with called expressions and type names before `(`.
     [$.type_specifier, $.expression, $._constructor_name],
     [$.expression, $._constructor_name],
@@ -333,6 +338,7 @@ module.exports = grammar(C, {
     _top_level_item: ($, original) => choice(
       ...original.members.filter((member) => member.content?.name != '_old_style_function_definition'),
       $.uncertain_macro_invocation,
+      alias($.macro_header_declaration, $.declaration),
       $.namespace_definition,
       $.concept_definition,
       $.namespace_alias_definition,
@@ -373,6 +379,8 @@ module.exports = grammar(C, {
       alias($._block_constructor_or_destructor_definition, $.function_definition),
       alias($.operator_cast_definition, $.function_definition),
       alias($.operator_cast_declaration, $.declaration),
+      alias($.macro_header_declaration, $.declaration),
+      alias($.macro_header_definition, $.function_definition),
     ),
 
     ...probedPreprocIf('', $ => $._top_level_item),
@@ -1082,6 +1090,28 @@ module.exports = grammar(C, {
       $.qualified_identifier,
       $.destructor_name,
       $.operator_name,
+      alias($._macro_header_declarator, $.function_declarator),
+    ),
+
+    // `M(T, Name)(params) SUFFIX;` outside classes, where typeless declarations otherwise stay calls.
+    macro_header_declaration: $ => seq(
+      repeat($._constructor_specifiers),
+      field('declarator', alias($._macro_header_function_declarator, $.function_declarator)),
+      ';',
+    ),
+    macro_header_definition: $ => constructorDefinition(
+      $, alias($._macro_header_function_declarator, $.function_declarator),
+    ),
+    _macro_header_function_declarator: $ => seq(
+      field('declarator', alias($._macro_header_declarator, $.function_declarator)),
+      $._function_declarator_seq,
+    ),
+
+    // `STDMETHOD_(void, Run)` in `STDMETHOD_(void, Run)() override;`, read as upstream does, with the
+    // macro's arguments as parameters of a nested function declarator.
+    _macro_header_declarator: $ => seq(
+      field('declarator', alias($._macro_header_callee, $.identifier)),
+      field('parameters', $.parameter_list),
     ),
 
     constructor_or_destructor_definition: $ => constructorDefinition(

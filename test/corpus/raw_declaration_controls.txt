@@ -2560,3 +2560,81 @@ void k() { p.operator int(); x = p.operator bool() * 2; }
                   (primitive_type)))
               (argument_list))
             (number_literal)))))))
+
+==================
+Function pointer members, parenthesized names and calls of calls keep their readings
+==================
+struct Funcs {
+    CURLcode (*do_init)(struct Curl_easy *data, void *writer);
+    int (name)(int x);
+};
+STDMETHOD(Run)(int x) override;
+void f() {
+    get(x)(y);
+    pick(a, b)(c) = 0;
+}
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (type_identifier)
+        (function_declarator
+          (parenthesized_declarator
+            (pointer_declarator
+              (field_identifier)))
+          (parameter_list
+            (parameter_declaration
+              (struct_specifier
+                (type_identifier))
+              (pointer_declarator
+                (identifier)))
+            (parameter_declaration
+              (primitive_type)
+              (pointer_declarator
+                (identifier))))))
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (parenthesized_declarator
+            (field_identifier))
+          (parameter_list
+            (parameter_declaration
+              (primitive_type)
+              (identifier)))))))
+  (declaration
+    (type_identifier)
+    (function_declarator
+      (parenthesized_declarator
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier)))
+      (virtual_specifier)))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))
+          (argument_list
+            (identifier))))
+      (expression_statement
+        (assignment_expression
+          (call_expression
+            (call_expression
+              (identifier)
+              (argument_list
+                (identifier)
+                (identifier)))
+            (argument_list
+              (identifier)))
+          (number_literal))))))

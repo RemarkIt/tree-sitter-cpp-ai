@@ -31,6 +31,7 @@ enum TokenType {
     IDENTIFIER,
     LITERAL_SUFFIX,
     MEMBER_POINTER_SCOPE,
+    MACRO_HEADER_CALLEE,
 };
 
 /// Declarator suffix words read between a constructor's parameters and its initializer list.
@@ -325,7 +326,15 @@ static inline bool is_raw_prefix(const Word *word) {
 /// strings, character literals, numbers and comments cannot unbalance the scan. Records whether
 /// an argument holds what no parameter declaration can: a leading literal, or a member access
 /// `.` before any default value, as in `M(T, Name, Changed.raise)`.
+static bool skip_balanced_list(TSLexer *lexer, bool *non_parameter, bool *several);
+
 static bool skip_balanced_arguments(TSLexer *lexer, bool *non_parameter) {
+    bool several = false;
+    return skip_balanced_list(lexer, non_parameter, &several);
+}
+
+/// As `skip_balanced_arguments`, also recording whether a top-level comma separates several arguments.
+static bool skip_balanced_list(TSLexer *lexer, bool *non_parameter, bool *several) {
     unsigned depth = 0;
     bool argument_start = false;
     bool default_value = false;
@@ -350,6 +359,7 @@ static bool skip_balanced_arguments(TSLexer *lexer, bool *non_parameter) {
         } else if (c == ',') {
             advance(lexer);
             argument_start = depth == 1;
+            *several = *several || argument_start;
             default_value = default_value && !argument_start;
         } else if (c == '/') {
             bool newline = false;
@@ -450,7 +460,8 @@ static bool braces_close_initializer(TSLexer *lexer) {
 }
 
 /// CONSTRUCTOR_HEAD: `B(...) [suffixes] : init`, no macro but a constructor declarator.
-typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE, LEADING_CALL, CONSTRUCTOR_HEAD } MacroShape;
+/// MACRO_HEADER: `M(...)(params) [suffixes];`, a macro producing a function header.
+typedef enum { NOT_MACRO, MACRO_INVOCATION, MACRO_TYPE, LEADING_CALL, CONSTRUCTOR_HEAD, MACRO_HEADER } MacroShape;
 
 static bool skip_balanced_block(TSLexer *lexer, bool *statements);
 
@@ -541,6 +552,58 @@ static bool call_annotation_keyword_follows(TSLexer *lexer, const Word *word) {
     return word_in(word, SPECIFIER_KEYWORDS) && annotation_tail_follows(lexer, true, false);
 }
 
+/// After `M(...)` (consumed) at `(`: a function header produced by a macro, as in
+/// `STDMETHOD_(void, Run)() override;` or `M(T, Name)(int x) SUFFIX {`: balanced parameters, then
+/// declarator suffixes and an ending only a declaration has: a body, `= 0`, `= default`, `= delete`
+/// or `;`. Where an expression may start, `f(x)(y);` and `f(x)(y) = 0;` stay calls unless a suffix
+/// word shows the declaration.
+static bool macro_header_follows(TSLexer *lexer, bool expression_possible) {
+    bool non_parameter = false;
+    bool newline = false;
+    if (!skip_balanced_arguments(lexer, &non_parameter) || non_parameter) {
+        return false;
+    }
+    bool suffix = false;
+    Word word;
+    for (unsigned words = 0;; words++) {
+        if (!skip_trivia(lexer, &newline)) {
+            return false;
+        }
+        if (!is_identifier_start(lexer->lookahead)) {
+            break;
+        }
+        if (words == MAX_SUFFIX_WORDS || !read_word(lexer, &word) ||
+            (word_in(&word, KEYWORDS) && !word_in(&word, FUNCTION_SUFFIX_KEYWORDS))) {
+            return false;
+        }
+        suffix = true;
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead == '(' && !skip_balanced_arguments(lexer, &non_parameter)) {
+            return false;
+        }
+    }
+    switch (lexer->lookahead) {
+        case '{':
+            return true;
+        case ';':
+            return suffix || !expression_possible;
+        case '=':
+            if (expression_possible && !suffix) {
+                return false;
+            }
+            advance(lexer);
+            if (!skip_trivia(lexer, &newline)) {
+                return false;
+            }
+            if (lexer->lookahead == '0') {
+                return true;
+            }
+            return read_word(lexer, &word) && (word_is(&word, "default") || word_is(&word, "delete"));
+        default:
+            return false;
+    }
+}
+
 /// After `__declspec` (consumed): its balanced arguments.
 static bool skip_declspec_arguments(TSLexer *lexer) {
     bool non_parameter = false;
@@ -573,7 +636,8 @@ static bool declaration_line_follows(TSLexer *lexer) {
 static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible, bool expression_possible,
                                       bool annotation_possible, bool invocation_possible) {
     bool non_parameter = false;
-    if (!skip_balanced_arguments(lexer, &non_parameter)) {
+    bool several = false;
+    if (!skip_balanced_list(lexer, &non_parameter, &several)) {
         return NOT_MACRO;
     }
     bool newline = false;
@@ -604,6 +668,11 @@ static MacroShape classify_macro_call(TSLexer *lexer, bool initializer_possible,
     Word word;
     bool initializers = false;
     if (!newline) {
+        if (c == '(') {
+            // Several arguments: `T (*name)(...)` and `T (name)(...)` hold a single declarator.
+            return several && !non_parameter && macro_header_follows(lexer, expression_possible) ? MACRO_HEADER
+                                                                                                 : NOT_MACRO;
+        }
         if (c == ':') {
             advance(lexer);
             return lexer->lookahead == ':' ? NOT_MACRO : CONSTRUCTOR_HEAD;
@@ -1031,7 +1100,8 @@ static bool annotation_tail_follows(TSLexer *lexer, bool after_specifier, bool m
                 return constructor_initializers_follow(lexer);
             }
             if (!is_identifier_start(lexer->lookahead)) {
-                return type_declarator_follows(lexer, false);
+                // After a specifier the word is the type, whose declarator may start the next line.
+                return type_declarator_follows(lexer, lexer->lookahead == '\n' || lexer->lookahead == '\r');
             }
             // `A inline B void f()`: a keyword type or specifier after `B` makes `B` an annotation
             // too; a cv-qualifier or calling convention continues `B` as the type.
@@ -1573,7 +1643,7 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
             return class_annotation_follows(lexer);
         }
         if (!valid_symbols[MACRO_INVOCATION_CALLEE] && !valid_symbols[MACRO_TYPE_CALLEE] &&
-            !valid_symbols[LEADING_ANNOTATION_CALLEE]) {
+            !valid_symbols[LEADING_ANNOTATION_CALLEE] && !valid_symbols[MACRO_HEADER_CALLEE]) {
             return false;
         }
         switch (classify_macro_call(lexer, valid_symbols[INITIALIZER_START_PROBE],
@@ -1588,6 +1658,9 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
             case MACRO_TYPE:
                 lexer->result_symbol = MACRO_TYPE_CALLEE;
                 return valid_symbols[MACRO_TYPE_CALLEE];
+            case MACRO_HEADER:
+                lexer->result_symbol = MACRO_HEADER_CALLEE;
+                return valid_symbols[MACRO_HEADER_CALLEE];
             default:
                 return false;
         }
@@ -1855,7 +1928,8 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
                              valid_symbols[MACRO_INVOCATION_CALLEE] || valid_symbols[MACRO_TYPE_CALLEE] ||
                              valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION] ||
                              valid_symbols[FUNCTION_SUFFIX_ANNOTATION] || valid_symbols[JUXTAPOSED_CALLEE] ||
-                             valid_symbols[SECTION_LABEL] || valid_symbols[LEADING_ANNOTATION_CALLEE];
+                             valid_symbols[SECTION_LABEL] || valid_symbols[LEADING_ANNOTATION_CALLEE] ||
+                             valid_symbols[MACRO_HEADER_CALLEE];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {

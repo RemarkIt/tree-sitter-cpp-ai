@@ -71,6 +71,15 @@
           "name": "uncertain_macro_invocation"
         },
         {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "macro_header_declaration"
+          },
+          "named": true,
+          "value": "declaration"
+        },
+        {
           "type": "SYMBOL",
           "name": "namespace_definition"
         },
@@ -290,6 +299,24 @@
           },
           "named": true,
           "value": "declaration"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "macro_header_declaration"
+          },
+          "named": true,
+          "value": "declaration"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "macro_header_definition"
+          },
+          "named": true,
+          "value": "function_definition"
         }
       ]
     },
@@ -15485,6 +15512,168 @@
         {
           "type": "SYMBOL",
           "name": "operator_name"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_macro_header_declarator"
+          },
+          "named": true,
+          "value": "function_declarator"
+        }
+      ]
+    },
+    "macro_header_declaration": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_constructor_specifiers"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "declarator",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_macro_header_function_declarator"
+            },
+            "named": true,
+            "value": "function_declarator"
+          }
+        },
+        {
+          "type": "STRING",
+          "value": ";"
+        }
+      ]
+    },
+    "macro_header_definition": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_constructor_specifiers"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "declarator",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_macro_header_function_declarator"
+            },
+            "named": true,
+            "value": "function_declarator"
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "SYMBOL",
+                      "name": "field_initializer_list"
+                    },
+                    {
+                      "type": "BLANK"
+                    }
+                  ]
+                },
+                {
+                  "type": "FIELD",
+                  "name": "body",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "compound_statement"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "ALIAS",
+              "content": {
+                "type": "SYMBOL",
+                "name": "constructor_try_statement"
+              },
+              "named": true,
+              "value": "try_statement"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "default_method_clause"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "delete_method_clause"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "pure_virtual_clause"
+            }
+          ]
+        }
+      ]
+    },
+    "_macro_header_function_declarator": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "declarator",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_macro_header_declarator"
+            },
+            "named": true,
+            "value": "function_declarator"
+          }
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_function_declarator_seq"
+        }
+      ]
+    },
+    "_macro_header_declarator": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "FIELD",
+          "name": "declarator",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_macro_header_callee"
+            },
+            "named": true,
+            "value": "identifier"
+          }
+        },
+        {
+          "type": "FIELD",
+          "name": "parameters",
+          "content": {
+            "type": "SYMBOL",
+            "name": "parameter_list"
+          }
         }
       ]
     },
@@ -21613,6 +21802,10 @@
       "friend_declaration"
     ],
     [
+      "_constructor_name",
+      "_macro_header_function_declarator"
+    ],
+    [
       "type_specifier",
       "expression",
       "_constructor_name"
@@ -21786,6 +21979,10 @@
     {
       "type": "SYMBOL",
       "name": "_member_pointer_scope"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_macro_header_callee"
     }
   ],
   "inline": [

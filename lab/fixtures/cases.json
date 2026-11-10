@@ -617,6 +617,90 @@
         {"name": "t", "kind": "variable", "owner": ["make_tag"], "source": "auto t = typename T::type{};"},
         {"name": "after", "return_type": "int", "source": "int after(int x) { return x; }"}
       ]
+    },
+    {
+      "id": "macro-function-headers",
+      "family": "declarations",
+      "required": false,
+      "file": "macro_function_headers.cpp",
+      "symbols": [
+        {
+          "name": "Run",
+          "definition": false,
+          "return_type": "void",
+          "owner": [
+            "Iface"
+          ],
+          "source": "METHOD_(void, Run)() = 0;",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Count",
+          "definition": false,
+          "return_type": "int",
+          "owner": [
+            "Iface"
+          ],
+          "source": "METHOD_(int, Count)() const = 0;",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Run",
+          "return_type": "void",
+          "owner": [
+            "Impl"
+          ],
+          "source": "METHOD_(void, Run)() override {}",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Count",
+          "definition": false,
+          "return_type": "int",
+          "owner": [
+            "Impl"
+          ],
+          "source": "METHOD_(int, Count)() const override;",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Check",
+          "definition": false,
+          "return_type": "bool",
+          "owner": [
+            "detail"
+          ],
+          "source": "FN(bool, Check)(int value) NOEXCEPT;",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Twice",
+          "return_type": "int",
+          "owner": [
+            "detail"
+          ],
+          "source": "FN(int, Twice)(int value) NOEXCEPT { return value * 2; }",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Check",
+          "definition": false,
+          "return_type": "bool",
+          "source": "FN(bool, Check)(int input) NOEXCEPT;",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "Twice",
+          "return_type": "int",
+          "source": "FN(int, Twice)(int input) NOEXCEPT { return input * 2; }",
+          "origin": "macro-expansion"
+        },
+        {
+          "name": "after",
+          "return_type": "int",
+          "source": "int after(int x) { return x; }"
+        }
+      ]
     }
   ]
 }

@@ -2063,3 +2063,141 @@ void g() {
                     (namespace_identifier)
                     (type_identifier)))
                 (initializer_list)))))))))
+
+==================
+Macros producing function headers and declarators on the next line
+==================
+struct ITest : public IUnknown {
+    STDMETHOD_(void, Test)() = 0;
+    STDMETHOD_(ULONG, AddRef)() override;
+    STDMETHOD_(ULONG, Release)() const override {}
+};
+namespace details {
+    __RFF_CONDITIONAL_METHOD(bool, FailFast_If)(__RFF_CONDITIONAL_FN_PARAMS bool condition) WI_NOEXCEPT;
+    template <typename T>
+    __R_CONDITIONAL_TEMPLATE_METHOD(HRESULT, Log_Ptr)(T p) WI_NOEXCEPT
+    {
+        return 0;
+    }
+}
+__R_DIRECT_METHOD(HRESULT, Return_Hr)(HRESULT hr) WI_NOEXCEPT;
+_Post_satisfies_(x > 0) inline HRESULT
+    Validate(int x)
+{
+    return 0;
+}
+---
+(translation_unit
+  (struct_specifier
+    (type_identifier)
+    (base_class_clause
+      (access_specifier)
+      (type_identifier))
+    (field_declaration_list
+      (function_definition
+        (function_declarator
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type))
+              (parameter_declaration
+                (type_identifier))))
+          (parameter_list))
+        (pure_virtual_clause))
+      (declaration
+        (function_declarator
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier))
+              (parameter_declaration
+                (type_identifier))))
+          (parameter_list)
+          (virtual_specifier)))
+      (function_definition
+        (function_declarator
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (type_identifier))
+              (parameter_declaration
+                (type_identifier))))
+          (parameter_list)
+          (type_qualifier)
+          (virtual_specifier))
+        (compound_statement))))
+  (namespace_definition
+    (namespace_identifier)
+    (declaration_list
+      (declaration
+        (function_declarator
+          (function_declarator
+            (identifier)
+            (parameter_list
+              (parameter_declaration
+                (primitive_type))
+              (parameter_declaration
+                (type_identifier))))
+          (parameter_list
+            (parameter_declaration
+              (uncertain_specifier
+                (identifier))
+              (primitive_type)
+              (identifier)))
+          (uncertain_specifier
+            (identifier))))
+      (template_declaration
+        (template_parameter_list
+          (type_parameter_declaration
+            (type_identifier)))
+        (function_definition
+          (function_declarator
+            (function_declarator
+              (identifier)
+              (parameter_list
+                (parameter_declaration
+                  (type_identifier))
+                (parameter_declaration
+                  (type_identifier))))
+            (parameter_list
+              (parameter_declaration
+                (type_identifier)
+                (identifier)))
+            (uncertain_specifier
+              (identifier)))
+          (compound_statement
+            (return_statement
+              (number_literal)))))))
+  (declaration
+    (function_declarator
+      (function_declarator
+        (identifier)
+        (parameter_list
+          (parameter_declaration
+            (type_identifier))
+          (parameter_declaration
+            (type_identifier))))
+      (parameter_list
+        (parameter_declaration
+          (type_identifier)
+          (identifier)))
+      (uncertain_specifier
+        (identifier))))
+  (function_definition
+    (uncertain_specifier
+      (identifier)
+      (uncertain_arguments))
+    (storage_class_specifier)
+    (type_identifier)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (return_statement
+        (number_literal)))))
