@@ -361,6 +361,12 @@
       {"name": "raise", "kind": "variable", "owner": ["Event"], "source": "int raise;"},
       {"name": "Changed", "kind": "variable", "owner": ["Model"], "source": "Event Changed;"},
       {"name": "count", "owner": ["Model"], "source": "int count() const { return 1; }"}
+    ]},
+    {"id": "conditional-statement-headers", "family": "conditional", "required": true, "file": "conditional_headers.cpp", "symbols": [
+      {"name": "perform", "definition": false, "source": "int perform(int value);"},
+      {"name": "login", "source": "int login(int a, int b) {\n#ifndef DISABLE_DIGEST\n    if (a)\n        return perform(1);\n    else\n#endif\n    if (b)\n        return perform(2);\n    return 0;\n}"},
+      {"name": "close_log", "source": "int close_log(int file) {\n#ifndef DISABLE_TTY\n    if (file != 1)\n#endif\n        file = perform(file);\n#ifdef VMS\n    if (perform(3) == -1)\n#else\n    if (perform(4) == -1)\n#endif\n    {\n        int failed = 1;\n        return failed;\n    }\n    return file;\n}"},
+      {"name": "failed", "kind": "variable", "owner": ["close_log"], "source": "int failed = 1;"}
     ]}
   ]
 }

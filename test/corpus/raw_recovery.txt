@@ -1312,3 +1312,96 @@ struct CommandPalette {
         (function_declarator
           (field_identifier)
           (parameter_list))))))
+
+==================
+Conditional groups ending with statement headers
+==================
+void login(int a, int b) {
+#ifndef DISABLE_DIGEST
+    if(a)
+      perform_apop();
+    else
+#endif
+    if(b)
+      perform_user();
+}
+void close_log(int file) {
+#ifndef DISABLE_TTY
+    if (file != 1)
+#endif
+        close(file);
+#ifdef VMS
+    if(open_vms() == -1)
+#else
+    if(open_any() == -1)
+#endif
+    {
+        report();
+    }
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (preproc_inline_conditional)
+      (if_statement
+        (condition_clause
+          (identifier))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))
+        (else_clause
+          (preproc_inline_conditional)
+          (if_statement
+            (condition_clause
+              (identifier))
+            (expression_statement
+              (call_expression
+                (identifier)
+                (argument_list))))))))
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (preproc_inline_conditional)
+      (if_statement
+        (condition_clause
+          (binary_expression
+            (identifier)
+            (number_literal)))
+        (preproc_inline_conditional)
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier)))))
+      (preproc_inactive_branch)
+      (if_statement
+        (condition_clause
+          (binary_expression
+            (call_expression
+              (identifier)
+              (argument_list))
+            (number_literal)))
+        (preproc_inline_conditional)
+        (compound_statement
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list))))))))

@@ -953,3 +953,62 @@ void f() {
               (identifier)
               (field_identifier))
             (identifier)))))))
+
+==================
+Conditional groups with complete statements stay structured
+==================
+void run(int a) {
+#ifdef FAST
+    if (a) fast();
+#else
+    while (a) slow();
+#endif
+#if defined(LOOP)
+    for (;;) { step(); }
+#endif
+    do { a--; } while (a);
+}
+---
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (preproc_ifdef
+        (identifier)
+        (if_statement
+          (condition_clause
+            (identifier))
+          (expression_statement
+            (call_expression
+              (identifier)
+              (argument_list))))
+        (preproc_else
+          (while_statement
+            (condition_clause
+              (identifier))
+            (expression_statement
+              (call_expression
+                (identifier)
+                (argument_list))))))
+      (preproc_if
+        (preproc_defined
+          (identifier))
+        (for_statement
+          (compound_statement
+            (expression_statement
+              (call_expression
+                (identifier)
+                (argument_list))))))
+      (do_statement
+        (compound_statement
+          (expression_statement
+            (update_expression
+              (identifier))))
+        (parenthesized_expression
+          (identifier))))))

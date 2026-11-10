@@ -938,20 +938,31 @@ static bool bare_macro_follows(TSLexer *lexer, bool initializer_possible) {
 
 typedef struct {
     bool complete;
-    /// Some branch is unbalanced or starts by continuing an earlier construct.
+    /// Some branch is unbalanced, starts by continuing an earlier construct, or ends with a
+    /// statement header whose body follows the group.
     bool irregular;
     /// An `#else`/`#elif` exists; the token then extends through the last such line.
     bool alternative;
 } ConditionalGroup;
 
+/// Statement keywords whose header `(...)` must be followed by a body.
+static const char *const HEADER_KEYWORDS[] = {"for", "if", "switch", "while", NULL};
+
 /// From the line after an opening `#if`, scan its group to the matching `#endif`. Nested groups
 /// count only their first branch toward bracket balance, as a single preprocessing pass would.
+/// A branch ending with `else`, `do` or a header such as `if (...)` leaves its statement's body
+/// after the group, as in `if (a) x(); else` followed by `#endif` and a block.
 static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalGroup *group) {
     unsigned nesting = 0;
     unsigned skipping = 0;
     int depth = 0;
     bool line_start = true;
     bool branch_start = true;
+    // Header tracking: a header keyword was just read, the depth its `(` opened at, and whether
+    // the branch so far ends with a header that still needs a body.
+    bool header_keyword = false;
+    int header_depth = -1;
+    bool open_header = false;
     for (; budget > 0; --budget) {
         if (lexer->eof(lexer)) {
             return;
@@ -975,7 +986,7 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
                 nesting++;
             } else if (word_is(&word, "endif")) {
                 if (nesting == 0) {
-                    group->irregular = group->irregular || depth != 0;
+                    group->irregular = group->irregular || depth != 0 || open_header;
                     group->complete = true;
                     return;
                 }
@@ -986,9 +997,12 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             } else if (word_is(&word, "else") || word_is(&word, "elif") || word_is(&word, "elifdef") ||
                        word_is(&word, "elifndef")) {
                 if (nesting == 0) {
-                    group->irregular = group->irregular || depth != 0;
+                    group->irregular = group->irregular || depth != 0 || open_header;
                     group->alternative = true;
                     depth = 0;
+                    header_keyword = false;
+                    header_depth = -1;
+                    open_header = false;
                     branch_start = true;
                     skip_directive_line(lexer);
                     lexer->mark_end(lexer);
@@ -1017,13 +1031,25 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
         }
         branch_start = false;
         bool counted = skipping == 0;
+        bool keyword = header_keyword;
+        header_keyword = false;
+        if (counted) {
+            open_header = false;
+        }
         if (c == '(' || c == '[' || c == '{') {
+            if (counted && keyword && c == '(' && depth == 0) {
+                header_depth = depth;
+            }
             depth += counted;
             advance(lexer);
         } else if (c == ')' || c == ']' || c == '}') {
             depth -= counted;
             if (depth < 0 && nesting == 0) {
                 group->irregular = true;
+            }
+            if (counted && c == ')' && depth == header_depth) {
+                open_header = true;
+                header_depth = -1;
             }
             advance(lexer);
         } else if (c == '"' || c == '\'') {
@@ -1041,6 +1067,10 @@ static void scan_conditional_group(TSLexer *lexer, unsigned budget, ConditionalG
             read_word(lexer, &word);
             if (first && (word_is(&word, "else") || word_is(&word, "catch"))) {
                 group->irregular = true;
+            }
+            if (counted && depth == 0) {
+                header_keyword = word_in(&word, HEADER_KEYWORDS) || (keyword && word_is(&word, "constexpr"));
+                open_header = word_is(&word, "else") || word_is(&word, "do");
             }
             if (lexer->lookahead == '"' && is_raw_prefix(&word)) {
                 skip_raw_string(lexer);
