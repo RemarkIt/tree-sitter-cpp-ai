@@ -234,6 +234,12 @@ module.exports = grammar(C, {
     // `M` in `M(T, Name)(params) suffixes;`: a macro producing a function header, certified by its
     // balanced parameters and an ending only a declaration has.
     $._macro_header_callee,
+    // A call's balanced arguments, kept opaque, when an argument holds two operands side by side,
+    // as in `F(MACRO hr, x)` or `VERBOSE(const char *s = NULL)`: only an unexpanded macro writes that.
+    $._uncertain_argument_list,
+    // Never produced: its validity marks where a parameter list may start, so such arguments are
+    // never certified where a declarator's parameters could be read instead.
+    $._parameter_list_probe,
   ],
 
   extras: ($, original) => original.concat([
@@ -436,7 +442,7 @@ module.exports = grammar(C, {
     // ordinary arguments, callees and nested blocks stay parsed.
     uncertain_macro_invocation: $ => prec.right(seq(
       field('macro', alias($._macro_invocation_callee, $.identifier)),
-      optional(field('arguments', $.argument_list)),
+      optional(field('arguments', choice($.argument_list, alias($._uncertain_argument_list, $.uncertain_arguments)))),
       optional(field('body', $.compound_statement)),
       optional(';'),
     )),
@@ -889,6 +895,7 @@ module.exports = grammar(C, {
     ),
 
     parameter_list: $ => seq(
+      optional($._parameter_list_probe),
       '(',
       commaSep(choice(
         $.parameter_declaration,
@@ -1710,6 +1717,14 @@ module.exports = grammar(C, {
           $.splice_type_specifier,
         ))),
         field('arguments', $.argument_list),
+      ))),
+      // A call whose arguments only an unexpanded macro can explain, as in `F(MACRO hr, x)`. The
+      // scanner certifies them only where no parameter list can start, and keeps them opaque. A
+      // parse stack reading `T (*p)(A b) = 0;` as calls also gets them, so any ordinary reading,
+      // even a parenthesized declarator, wins over this one.
+      prec.dynamic(PREC.PAREN_DECLARATOR * 2, prec(PREC.CALL, seq(
+        field('function', $.expression),
+        field('arguments', alias($._uncertain_argument_list, $.uncertain_arguments)),
       ))),
       // A functional cast such as `unsigned(v)` takes a single-word type. Where a declaration
       // such as `unsigned(v);` or `long(*p) = 0;` is possible, the declaration wins.

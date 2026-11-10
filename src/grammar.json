@@ -6894,6 +6894,18 @@
       "type": "SEQ",
       "members": [
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_parameter_list_probe"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
           "type": "STRING",
           "value": "("
         },
@@ -9888,6 +9900,40 @@
                 ]
               }
             ]
+          }
+        },
+        {
+          "type": "PREC_DYNAMIC",
+          "value": -20,
+          "content": {
+            "type": "PREC",
+            "value": 15,
+            "content": {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "FIELD",
+                  "name": "function",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "expression"
+                  }
+                },
+                {
+                  "type": "FIELD",
+                  "name": "arguments",
+                  "content": {
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "_uncertain_argument_list"
+                    },
+                    "named": true,
+                    "value": "uncertain_arguments"
+                  }
+                }
+              ]
+            }
           }
         },
         {
@@ -13214,8 +13260,22 @@
                 "type": "FIELD",
                 "name": "arguments",
                 "content": {
-                  "type": "SYMBOL",
-                  "name": "argument_list"
+                  "type": "CHOICE",
+                  "members": [
+                    {
+                      "type": "SYMBOL",
+                      "name": "argument_list"
+                    },
+                    {
+                      "type": "ALIAS",
+                      "content": {
+                        "type": "SYMBOL",
+                        "name": "_uncertain_argument_list"
+                      },
+                      "named": true,
+                      "value": "uncertain_arguments"
+                    }
+                  ]
                 }
               },
               {
@@ -22110,6 +22170,14 @@
     {
       "type": "SYMBOL",
       "name": "_macro_header_callee"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_uncertain_argument_list"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_parameter_list_probe"
     }
   ],
   "inline": [

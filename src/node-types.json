@@ -1390,6 +1390,10 @@
           {
             "type": "argument_list",
             "named": true
+          },
+          {
+            "type": "uncertain_arguments",
+            "named": true
           }
         ]
       },
@@ -8123,6 +8127,10 @@
         "types": [
           {
             "type": "argument_list",
+            "named": true
+          },
+          {
+            "type": "uncertain_arguments",
             "named": true
           }
         ]

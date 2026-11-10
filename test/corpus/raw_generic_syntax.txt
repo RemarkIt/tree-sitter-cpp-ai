@@ -2391,3 +2391,53 @@ const char *s = R"abcdefghijklmnop()abcdefghijklmno)abcdefghijklmnop";
         (raw_string_delimiter)
         (raw_string_content)
         (raw_string_delimiter)))))
+
+================================================================================
+Call arguments that only an unexpanded macro explains stay opaque
+================================================================================
+
+void f()
+{
+  VERBOSE(const char *s = NULL);
+  report<Kind::Return>(MACRO_ARGS hr, x);
+  return g(h(a and b), A::B(MACRO c));
+}
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (uncertain_arguments)))
+      (expression_statement
+        (call_expression
+          (template_function
+            (identifier)
+            (template_argument_list
+              (type_descriptor
+                (qualified_identifier
+                  (namespace_identifier)
+                  (type_identifier)))))
+          (uncertain_arguments)))
+      (return_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (call_expression
+              (identifier)
+              (argument_list
+                (binary_expression
+                  (identifier)
+                  (identifier))))
+            (call_expression
+              (qualified_identifier
+                (namespace_identifier)
+                (identifier))
+              (uncertain_arguments))))))))

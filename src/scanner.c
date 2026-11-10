@@ -32,6 +32,8 @@ enum TokenType {
     LITERAL_SUFFIX,
     MEMBER_POINTER_SCOPE,
     MACRO_HEADER_CALLEE,
+    UNCERTAIN_ARGUMENT_LIST,
+    PARAMETER_LIST_PROBE,
 };
 
 /// Declarator suffix words read between a constructor's parameters and its initializer list.
@@ -1936,6 +1938,133 @@ static bool scan_raw_string_content(Scanner *scanner, TSLexer *lexer) {
     }
 }
 
+/// Keywords naming a fundamental type, which no expression operand can be followed by a name.
+static inline bool is_fundamental_type_word(const Word *word) {
+    return word_in(word, TYPE_KEYWORDS) && !word_is(word, "class") && !word_is(word, "enum") &&
+           !word_is(word, "struct") && !word_is(word, "typename") && !word_is(word, "union");
+}
+
+/// From `(`, consume a call's balanced arguments through `)` when an argument holds two operands
+/// side by side, which no expression or type argument can: two plain words, as in
+/// `F(MACRO hr, x)` or `PRAGMA(clang diagnostic ignored "-W...")`, or a fundamental type and then
+/// a name, as in `VERBOSE(const char *s = NULL)`. Keywords never count as plain words, a word after
+/// `signed` or `unsigned` completes the type, as in `unsigned __int64`, words in template
+/// arguments (`<` right after a word) never count, and once an argument holds a string literal its
+/// words may be string macros being concatenated.
+static bool uncertain_arguments_follow(TSLexer *lexer) {
+    enum { OTHER, PLAIN_WORD, TYPE_WORD, SIGN_WORD } previous = OTHER;
+    unsigned depth = 0;
+    unsigned angles = 0;
+    bool after_word = false;
+    bool string_seen = false;
+    bool juxtaposed = false;
+    for (unsigned budget = MAX_INVOCATION_SCAN; budget > 0; --budget) {
+        if (lexer->eof(lexer)) {
+            return false;
+        }
+        int32_t c = lexer->lookahead;
+        bool word_before = after_word;
+        after_word = false;
+        if (c == '(' || c == '[' || c == '{') {
+            depth++;
+            previous = OTHER;
+            advance(lexer);
+        } else if (c == ')' || c == ']' || c == '}') {
+            advance(lexer);
+            if (--depth == 0) {
+                return c == ')' && juxtaposed;
+            }
+            previous = OTHER;
+        } else if (is_space(c)) {
+            advance(lexer);
+        } else if (c == '/') {
+            bool newline = false;
+            advance(lexer);
+            if (!skip_comment_after_slash(lexer, &newline)) {
+                previous = OTHER;
+            }
+        } else if (c == '"' || c == '\'') {
+            if (!skip_quoted(lexer)) {
+                return false;
+            }
+            string_seen = string_seen || (depth == 1 && c == '"');
+            previous = OTHER;
+        } else if (is_digit(c)) {
+            int32_t last = 0;
+            while (is_identifier_part(lexer->lookahead) || lexer->lookahead == '.' || lexer->lookahead == '\'' ||
+                   ((lexer->lookahead == '+' || lexer->lookahead == '-') &&
+                    (last == 'e' || last == 'E' || last == 'p' || last == 'P'))) {
+                last = lexer->lookahead;
+                advance(lexer);
+            }
+            previous = OTHER;
+        } else if (is_identifier_start(c)) {
+            Word word;
+            read_word(lexer, &word);
+            if (lexer->lookahead == '"' && is_raw_prefix(&word)) {
+                if (!skip_raw_string(lexer)) {
+                    return false;
+                }
+                string_seen = string_seen || depth == 1;
+                previous = OTHER;
+            } else if (lexer->lookahead == '"' || lexer->lookahead == '\'') {
+                bool string = lexer->lookahead == '"';
+                if (!skip_quoted(lexer)) {
+                    return false;
+                }
+                string_seen = string_seen || (depth == 1 && string);
+                previous = OTHER;
+            } else if (depth == 1 && angles == 0) {
+                after_word = true;
+                if (!word_in(&word, KEYWORDS)) {
+                    if (previous == SIGN_WORD) {
+                        previous = TYPE_WORD;
+                    } else {
+                        juxtaposed = juxtaposed || (previous != OTHER && !string_seen);
+                        previous = PLAIN_WORD;
+                    }
+                } else if (word_is(&word, "signed") || word_is(&word, "unsigned")) {
+                    previous = SIGN_WORD;
+                } else if (is_fundamental_type_word(&word)) {
+                    previous = TYPE_WORD;
+                } else if (!((previous == TYPE_WORD || previous == SIGN_WORD) &&
+                             (word_is(&word, "const") || word_is(&word, "volatile")))) {
+                    previous = OTHER;
+                }
+            } else {
+                after_word = depth == 1;
+            }
+        } else if (c == '#') {
+            return false;
+        } else if (depth == 1 && c == '<' && word_before) {
+            angles++;
+            advance(lexer);
+        } else if (depth == 1 && c == '>' && angles > 0) {
+            angles--;
+            previous = OTHER;
+            advance(lexer);
+        } else if (depth == 1 && c == '-') {
+            advance(lexer);
+            if (lexer->lookahead == '>') {
+                advance(lexer);
+            }
+            previous = OTHER;
+        } else if (depth == 1 && c == ',') {
+            advance(lexer);
+            string_seen = false;
+            previous = OTHER;
+        } else if (depth == 1 && angles == 0 && (previous == TYPE_WORD || previous == SIGN_WORD) &&
+                   (c == '*' || c == '&')) {
+            previous = TYPE_WORD;
+            advance(lexer);
+        } else {
+            advance(lexer);
+            previous = OTHER;
+        }
+    }
+    return false;
+}
+
 void *tree_sitter_cpp_external_scanner_create() {
     Scanner *scanner = (Scanner *)ts_calloc(1, sizeof(Scanner));
     memset(scanner, 0, sizeof(Scanner));
@@ -1977,6 +2106,43 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
         }
         lexer->mark_end(lexer);
         lexer->result_symbol = ANNOTATION_ARGUMENTS;
+        return true;
+    }
+
+    if (lexer->lookahead == '(') {
+        // Only the scans above start at `(`, so nothing else is lost when these arguments are not
+        // certified. A space before `(` keeps the ordinary reading.
+        if (!valid_symbols[UNCERTAIN_ARGUMENT_LIST] || !uncertain_arguments_follow(lexer)) {
+            return false;
+        }
+        lexer->mark_end(lexer);
+        // A function header continues with `{`, `:` or a suffix keyword: there these arguments are
+        // parameters, and a parse stack reading a call must not outlive them. Where a typeless
+        // declarator such as `A::A(int x)` may also start, only a statement's `;` certifies them.
+        bool newline = false;
+        if (!skip_trivia(lexer, &newline)) {
+            return false;
+        }
+        int32_t next = lexer->lookahead;
+        if (valid_symbols[PARAMETER_LIST_PROBE] && next != ';') {
+            return false;
+        }
+        if (next == '{') {
+            return false;
+        }
+        if (next == ':') {
+            advance(lexer);
+            if (lexer->lookahead != ':') {
+                return false;
+            }
+        } else if (is_identifier_start(next)) {
+            Word word;
+            read_word(lexer, &word);
+            if (word_in(&word, FUNCTION_SUFFIX_KEYWORDS)) {
+                return false;
+            }
+        }
+        lexer->result_symbol = UNCERTAIN_ARGUMENT_LIST;
         return true;
     }
 
