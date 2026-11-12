@@ -3,8 +3,9 @@
 C/C++ grammar for [tree-sitter](https://github.com/tree-sitter/tree-sitter) that
 parses real-world code containing unexpanded macros. It is an AI-developed fork
 of [tree-sitter-cpp](https://github.com/tree-sitter/tree-sitter-cpp), based on
-upstream commit `c009222`, and it remains a drop-in replacement: the language is
-still `cpp` and the C entry point is still `tree_sitter_cpp`.
+upstream commit `c009222` with upstream's full history preserved, and it remains
+a drop-in replacement: the language is still `cpp` and the C entry point is
+still `tree_sitter_cpp`.
 
 Tree-sitter grammars see source before preprocessing, so code like this:
 
@@ -33,31 +34,62 @@ consumers can tell certified syntax from recovery. See the
 
 ## Results
 
-Held-out sample: 954 first-party files from ten public repositories (terminal,
-notepad++, wil, leveldb, json, imgui, curl, qBittorrent, godot and folly),
-pinned in [lab/corpora/heldout.json](lab/corpora/heldout.json). No grammar
-change was developed against this sample.
+Measured once, for release 0.1.0, on a fresh sample whose file selection was
+fixed before its first parse: 1,300 first-party files, up to 100 per
+repository, from 13 public repositories never used to develop the grammar
+(bitcoin, opencv, protobuf, abseil-cpp, googletest, duckdb, obs-studio, CMake,
+calculator, serenity, redis, llama.cpp and Marlin), pinned in
+[lab/corpora/fresh.json](lab/corpora/fresh.json).
 
 | | upstream | this fork |
 |---|---:|---:|
-| Files with parse errors | 490 (51.4%) | 209 (21.9%) |
-| ERROR nodes | 7,958 | 2,035 |
-| Bytes inside ERROR regions | 1,133,588 | 478,723 |
+| Files with parse errors | 475 (36.5%) | 111 (8.5%) |
+| ERROR nodes | 4,920 | 784 |
+| MISSING nodes | 2,128 | 148 |
+| Bytes inside ERROR regions | 675,192 | 27,131 |
 | Error-free files that start failing | | 0 |
 
-Parse time on the same sample relative to upstream, as per-thread CPU time
+Every repository improves; the files still containing errors range from 2
+(duckdb) to 20 (googletest) per 100. No function disappears from a file that
+upstream parses without errors. The 237 function spans that do disappear all
+come from files upstream already misparsed, where text such as
+`ABSL_NAMESPACE_BEGIN namespace x {` or `class X CV_FINAL : public Base {` was
+read as a function definition; the real functions and constructors appear in
+their place (320 spans).
+
+On the code the grammar was developed against, the gap is wider:
+[lab/corpora/heldout.json](lab/corpora/heldout.json), 954 files from ten other
+repositories that were held out at first and later used for development, goes
+from 490 to 12 files with errors. Expect results on new code to resemble the
+fresh sample rather than this one.
+
+Parse time on the fresh sample relative to upstream, as per-thread CPU time
 with both parsers compiled at `-O2`:
 
-| clean in both (464 files) | fixed by this fork (281) | errors in both (209) | all (954) |
+| clean in both (825 files) | fixed by this fork (364) | errors in both (111) | all (1,300) |
 |---:|---:|---:|---:|
-| 1.07× | 0.92× | 0.97× | 0.97× |
+| 1.06× | 0.90× | 0.96× | 0.98× |
 
-The scanner returns the identifiers it reads, so the generated lexer does not
-read them again; error recovery that the fork avoids is the other saving. Per-file
-p95 is 0.88× and incremental reparsing 1.02× (the lab's budgets are ≤1.20× for
-totals and ≤1.25× for p95 and incremental). The price is tree memory: holding all
-954 trees takes about 18% more than upstream, because tree-sitter stores tokens
-from an external scanner as full nodes.
+Per-file p95 is 1.03× and incremental reparsing 0.74× (the lab's budgets are
+≤1.20× for totals and ≤1.25× for p95 and incremental). Code that already parses
+cleanly pays about 6% for the extra checks; code the fork repairs is faster
+because the parser no longer runs error recovery.
+
+## Trade-offs and limits
+
+- **Size:** the generated `src/parser.c` is about 71 MB (upstream 26 MB) and the
+  compiled library about 17 MB (upstream 5.6 MB), because certified macro shapes
+  need about 30,000 parse states (upstream about 11,700).
+- **Memory:** holding parsed trees takes about 18% more than upstream, because
+  tree-sitter stores tokens from an external scanner as full nodes.
+- **Trees:** node types are a superset of upstream's, and some upstream
+  misparses get different, correct trees, so queries written for upstream may
+  need to handle the new nodes.
+- **Remaining errors:** template-heavy library headers, test frameworks whose
+  macros take arguments that are not expressions, and code whose syntax only
+  exists after macro expansion. See the [methodology's known limits](docs/methodology.md#known-limits).
+- **Status:** 0.x and experimental; the tree shape may still change between
+  minor versions.
 
 ## Usage
 
@@ -72,10 +104,6 @@ pip install git+https://github.com/RemarkIt/tree-sitter-cpp-ai
 import tree_sitter, tree_sitter_cpp_ai
 parser = tree_sitter.Parser(tree_sitter.Language(tree_sitter_cpp_ai.language()))
 ```
-
-Node types are a superset of upstream's, and some upstream misparses now get
-different, correct trees. Queries written for upstream may need to handle the
-new recovery nodes.
 
 ## Laboratory
 

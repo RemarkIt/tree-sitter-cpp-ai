@@ -53,7 +53,9 @@ readings that share a parse state.
    - the census on development corpora shows no newly broken files, and every
      changed error-free tree and declaration delta is reviewed;
    - held-out corpora that were never used for development confirm the change
-     generalizes;
+     generalizes. Once a held-out corpus has guided a change, it becomes a
+     development corpus; measure generalization on a newly selected sample
+     instead, such as [fresh.json](../lab/corpora/fresh.json);
    - timing and deterministic parse work stay within budget (medians ≤1.20×,
      p95 and incremental ≤1.25× of upstream).
 

@@ -159,7 +159,10 @@ their upstream reading.
 ```
 
 A corpus specification pins repositories by commit and files by path and
-SHA-256; sources are fetched on demand, never redistributed. The census reports
+SHA-256; sources are fetched on demand, never redistributed.
+[fresh.json](corpora/fresh.json) is the held-out sample behind the published
+results; [heldout.json](corpora/heldout.json) began as one but has since been
+used for development. The census reports
 error-containing files, ERROR and missing-node spans (including hidden missing
 tokens), function-definition spans, declaration deltas with ownership and
 ranges, uncertain regions and tree identities against upstream and an optional
