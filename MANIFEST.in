@@ -1,0 +1,4 @@
+include LICENSE README.md
+include src/tree_sitter/*.h src/scanner/*.h
+include bindings/python/tree_sitter_cpp_ai/*.pyi bindings/python/tree_sitter_cpp_ai/py.typed
+graft queries

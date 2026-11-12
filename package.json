@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-cpp-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "C/C++ grammar for tree-sitter with generic recovery of macro-shaped syntax (fork of tree-sitter-cpp)",
   "repository": "https://github.com/RemarkIt/tree-sitter-cpp-ai",
   "license": "MIT",

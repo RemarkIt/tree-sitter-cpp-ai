@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tree-sitter-cpp-ai"
 description = "C/C++ grammar for tree-sitter with generic recovery of macro-shaped syntax (fork of tree-sitter-cpp)"
-version = "0.1.0"
+version = "0.1.1"
 keywords = ["incremental", "parsing", "tree-sitter", "cpp"]
 classifiers = [
   "Intended Audience :: Developers",
@@ -18,7 +18,7 @@ authors = [
   { name = "Max Brunsfeld", email = "maxbrunsfeld@gmail.com" },
   { name = "Amaan Qureshi", email = "amaanq12@gmail.com" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license.text = "MIT"
 readme = "README.md"
 
@@ -26,8 +26,18 @@ readme = "README.md"
 Homepage = "https://github.com/RemarkIt/tree-sitter-cpp-ai"
 
 [project.optional-dependencies]
-core = ["tree-sitter~=0.22"]
+core = ["tree-sitter>=0.25.2"]
 
 [tool.cibuildwheel]
-build = "cp39-*"
+# One abi3 wheel per platform covers every CPython >= 3.10.
+build = "cp310-*"
 build-frontend = "build"
+test-requires = ["tree-sitter>=0.25.2"]
+test-sources = ["bindings/python/tests"]
+test-command = "python -m unittest discover -v -s bindings/python/tests"
+
+[tool.cibuildwheel.macos]
+archs = ["arm64", "x86_64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]

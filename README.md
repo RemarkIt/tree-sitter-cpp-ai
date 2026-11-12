@@ -106,7 +106,7 @@ The packages are named `tree-sitter-cpp-ai` so they can be installed next to
 upstream. For example, in Python:
 
 ```sh
-pip install git+https://github.com/RemarkIt/tree-sitter-cpp-ai
+pip install tree-sitter-cpp-ai
 ```
 
 ```python

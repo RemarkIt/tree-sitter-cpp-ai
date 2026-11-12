@@ -18,7 +18,7 @@ class BdistWheel(bdist_wheel):
     def get_tag(self):
         python, abi, platform = super().get_tag()
         if python.startswith("cp"):
-            python, abi = "cp39", "abi3"
+            python, abi = "cp310", "abi3"
         return python, abi, platform
 
 
@@ -46,7 +46,7 @@ setup(
                 "/utf-8",
             ],
             define_macros=[
-                ("Py_LIMITED_API", "0x03090000"),
+                ("Py_LIMITED_API", "0x030A0000"),
                 ("PY_SSIZE_T_CLEAN", None),
                 ("TREE_SITTER_HIDE_SYMBOLS", None),
             ],
