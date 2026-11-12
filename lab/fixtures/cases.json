@@ -701,6 +701,131 @@
           "source": "int after(int x) { return x; }"
         }
       ]
+    },
+    {
+      "id": "enum-annotations",
+      "family": "annotation",
+      "required": true,
+      "file": "enum_annotations.cpp",
+      "headers": ["enum_annotations.h"],
+      "raw_nodes": [
+        {
+          "kind": "enum_specifier",
+          "source": "enum class [[nodiscard]] ENUM_API Mode : unsigned char {\n  Idle ENUM_META(Label = \"Idle\"),\n  Legacy [[deprecated(\"use Idle\")]] ENUM_META(Hidden) = 0,\n  Shifted = 1 << 1 ENUM_META(Label = \"Shifted\"),\n  Alias = Shifted ENUM_META(Label = \"Alias\"),\n  Grouped = (1 << 2) ENUM_META(Label = \"Grouped\")\n}",
+          "fields": {
+            "name": "Mode",
+            "base": "unsigned char"
+          }
+        },
+        {
+          "kind": "enumerator",
+          "source": "Idle ENUM_META(Label = \"Idle\")",
+          "fields": {
+            "name": "Idle"
+          }
+        },
+        {
+          "kind": "enumerator",
+          "source": "Legacy [[deprecated(\"use Idle\")]] ENUM_META(Hidden) = 0",
+          "fields": {
+            "name": "Legacy",
+            "value": "0"
+          }
+        },
+        {
+          "kind": "enumerator",
+          "source": "Shifted = 1 << 1 ENUM_META(Label = \"Shifted\")",
+          "fields": {
+            "name": "Shifted",
+            "value": "1 << 1"
+          }
+        },
+        {
+          "kind": "enumerator",
+          "source": "Alias = Shifted ENUM_META(Label = \"Alias\")",
+          "fields": {
+            "name": "Alias",
+            "value": "Shifted"
+          }
+        },
+        {
+          "kind": "enumerator",
+          "source": "Grouped = (1 << 2) ENUM_META(Label = \"Grouped\")",
+          "fields": {
+            "name": "Grouped",
+            "value": "(1 << 2)"
+          }
+        },
+        {
+          "kind": "enum_specifier",
+          "source": "enum ENUM_DEPRECATED(5.2, \"use Mode\") OldMode {\n  First ENUM_META(Hidden)\n}",
+          "fields": {
+            "name": "OldMode"
+          }
+        },
+        {
+          "kind": "enumerator",
+          "source": "First ENUM_META(Hidden)",
+          "fields": {
+            "name": "First"
+          }
+        }
+      ],
+      "symbols": [
+        {
+          "name": "read_mode",
+          "return_type": "int",
+          "source": "int read_mode(Mode mode) { return static_cast<int>(mode); }"
+        }
+      ]
+    },
+    {
+      "id": "enum-annotation-controls",
+      "family": "declarations",
+      "required": true,
+      "file": "enum_annotation_controls.cpp",
+      "forbid_uncertainty": true,
+      "raw_nodes": [
+        {
+          "kind": "enumerator",
+          "source": "CastCall = (Flags) make_flag(1)",
+          "fields": {
+            "name": "CastCall",
+            "value": "(Flags) make_flag(1)"
+          }
+        },
+        {
+          "kind": "declaration",
+          "source": "enum Flags selected { CastCall };"
+        },
+        {
+          "kind": "field_declaration",
+          "source": "enum Flags member { Plain };"
+        }
+      ],
+      "symbols": [
+        {
+          "name": "make_flag",
+          "return_type": "int",
+          "source": "constexpr int make_flag(int bit) { return 1 << bit; }"
+        },
+        {
+          "name": "selected",
+          "kind": "variable",
+          "source": "enum Flags selected { CastCall };"
+        },
+        {
+          "name": "member",
+          "kind": "variable",
+          "owner": ["Holder"],
+          "source": "enum Flags member { Plain };"
+        },
+        {
+          "name": "read_selected",
+          "return_type": "int",
+          "source": "int read_selected() { return selected; }"
+        }
+      ]
     }
   ]
 }

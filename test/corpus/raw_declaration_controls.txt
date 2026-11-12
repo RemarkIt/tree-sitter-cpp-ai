@@ -2678,3 +2678,55 @@ value;
     (preproc_inline_conditional)
     (identifier))
   (preproc_inline_conditional))
+
+==================
+Enum cast initializers, juxtaposed counts and elaborated enum variables keep their readings
+==================
+enum Flags {
+  CastCall = (Flags) MAKE_FLAG(1),
+  MidCount = 0 ITEMS(ADD, EXTRA) + 1,
+};
+enum Flags selected { CastCall };
+struct Holder {
+  enum Flags bits : 8;
+};
+---
+(translation_unit
+  (enum_specifier
+    (type_identifier)
+    (enumerator_list
+      (enumerator
+        (identifier)
+        (cast_expression
+          (type_descriptor
+            (type_identifier))
+          (call_expression
+            (identifier)
+            (argument_list
+              (number_literal)))))
+      (enumerator
+        (identifier)
+        (binary_expression
+          (uncertain_concatenation
+            (number_literal)
+            (identifier)
+            (call_expression
+              (identifier)
+              (identifier)))
+          (number_literal)))))
+  (declaration
+    (enum_specifier
+      (type_identifier))
+    (init_declarator
+      (identifier)
+      (initializer_list
+        (identifier))))
+  (struct_specifier
+    (type_identifier)
+    (field_declaration_list
+      (field_declaration
+        (enum_specifier
+          (type_identifier))
+        (field_identifier)
+        (bitfield_clause
+          (number_literal))))))

@@ -246,6 +246,10 @@ module.exports = grammar(C, {
     // C++/CX `ref` in `ref new T(...)`, certified by the `new` after it, so `ref` stays a name
     // everywhere else.
     $._ref_new,
+    // After an enumerator's name or initializer: `A` in `Idle A(...)` or `Idle = 0 A(...)`,
+    // certified when balanced arguments and any further enumerator annotations end at `=`, `,`, `}`
+    // or a conditional directive line.
+    $._enumerator_annotation_callee,
   ],
 
   extras: ($, original) => original.concat([
@@ -768,20 +772,68 @@ module.exports = grammar(C, {
       )),
     ),
 
+    _enum_head_attribute: $ => choice(
+      $.attribute_specifier,
+      $.alignas_qualifier,
+      $.ms_declspec_modifier,
+      $.attribute_declaration,
+    ),
+
     enum_specifier: $ => prec.right(seq(
       'enum',
-      optional(choice('class', 'struct')),
       choice(
         seq(
-          field('name', $._class_name),
-          optional($._enum_base_clause),
-          optional(field('body', $.enumerator_list)),
+          choice('class', 'struct'),
+          repeat($._enum_head_attribute),
+          choice(
+            seq(
+              repeat(choice($.uncertain_specifier, alias($._uncertain_specifier_call, $.uncertain_specifier))),
+              field('name', $._class_name),
+              optional($._enum_base_clause),
+              optional(field('body', $.enumerator_list)),
+            ),
+            seq(optional($._enum_base_clause), field('body', $.enumerator_list)),
+          ),
         ),
-        // An unnamed enumeration may still fix its base, as in `enum : uint32_t { A = 1 };`.
-        seq(optional($._enum_base_clause), field('body', $.enumerator_list)),
+        seq(
+          repeat($._enum_head_attribute),
+          choice(
+            seq(
+              // Unscoped `enum A b{x};` may declare a variable, so only call-shaped annotations
+              // are admitted before an unscoped enum's name.
+              repeat(alias($._uncertain_specifier_call, $.uncertain_specifier)),
+              field('name', $._class_name),
+              optional($._enum_base_clause),
+              optional(field('body', $.enumerator_list)),
+            ),
+            // An unnamed enumeration may still fix its base, as in `enum : uint32_t { A = 1 };`.
+            seq(optional($._enum_base_clause), field('body', $.enumerator_list)),
+          ),
+        ),
       ),
       optional($.attribute_specifier),
     )),
+
+    _enumerator_annotation: $ => seq(
+      alias($._enumerator_annotation_callee, $.identifier),
+      field('arguments', choice($.argument_list, alias($._uncertain_argument_list, $.uncertain_arguments))),
+    ),
+
+    _enumerator_attribute: $ => choice(
+      $.attribute_declaration,
+      $.attribute_specifier,
+      alias($._enumerator_annotation, $.uncertain_specifier),
+    ),
+
+    enumerator: $ => seq(
+      field('name', $.identifier),
+      repeat($._enumerator_attribute),
+      optional(seq(
+        '=',
+        field('value', $.expression),
+        repeat($._enumerator_attribute),
+      )),
+    ),
 
     _enum_base_clause: $ => prec.left(seq(
       ':',

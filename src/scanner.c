@@ -36,6 +36,7 @@ enum TokenType {
     PARAMETER_LIST_PROBE,
     CLASS_KEY_MACRO,
     REF_NEW,
+    ENUMERATOR_ANNOTATION_CALLEE,
 };
 
 /// Declarator suffix words read between a constructor's parameters and its initializer list.
@@ -1809,6 +1810,54 @@ static bool function_suffix_follows(TSLexer *lexer) {
     return false;
 }
 
+/// After an enumerator annotation call's balanced arguments: certify when further annotation
+/// calls or attributes end at `=`, `,`, `}` or a conditional directive line inside the enum.
+static bool enumerator_annotation_tail_follows(TSLexer *lexer) {
+    bool non_parameter = false;
+    for (unsigned count = 0; count < MAX_FUNCTION_SUFFIX_ANNOTATIONS; count++) {
+        bool newline = false;
+        if (!skip_trivia(lexer, &newline) || lexer->eof(lexer)) {
+            return false;
+        }
+        int32_t c = lexer->lookahead;
+        if (c == ',' || c == '}' || (newline && c == '#')) {
+            return true;
+        }
+        if (c == '=') {
+            advance(lexer);
+            return lexer->lookahead != '=';
+        }
+        if (c == '[') {
+            advance(lexer);
+            if (lexer->lookahead != '[' || !skip_balanced_arguments(lexer, &non_parameter) ||
+                lexer->lookahead != ']') {
+                return false;
+            }
+            advance(lexer);
+            continue;
+        }
+        Word word;
+        if (!read_word(lexer, &word) || lexer->lookahead == '"' || lexer->lookahead == '\'') {
+            return false;
+        }
+        if (word_is(&word, "__attribute__") || word_is(&word, "__attribute")) {
+            skip_horizontal_space(lexer);
+            if (lexer->lookahead != '(' || !skip_balanced_arguments(lexer, &non_parameter)) {
+                return false;
+            }
+            continue;
+        }
+        if (word_in(&word, KEYWORDS)) {
+            return false;
+        }
+        skip_horizontal_space(lexer);
+        if (lexer->lookahead != '(' || !skip_balanced_arguments(lexer, &non_parameter)) {
+            return false;
+        }
+    }
+    return false;
+}
+
 /// At the start of a conditional directive's macro argument: consume the argument through its
 /// end, a `,` or `)` at its own depth on the logical line, and certify it only when it holds a
 /// character that no preprocessor expression can, such as the `?` of `F(?)` or the `::` of
@@ -1909,12 +1958,25 @@ static bool scan_certified_identifier(TSLexer *lexer, const bool *valid_symbols,
         return section_label_follows(lexer);
     }
     if (lexer->lookahead == '(') {
-        if (valid_symbols[JUXTAPOSED_CALLEE]) {
-            // After a call expression nothing ordinary can begin with a word, so `A(x) B(y)` juxtaposes
-            // `B(y)` once its arguments are balanced.
+        bool enumerator_annotation = valid_symbols[ENUMERATOR_ANNOTATION_CALLEE] &&
+                                     !valid_symbols[EXPRESSION_START_PROBE];
+        if (enumerator_annotation || valid_symbols[JUXTAPOSED_CALLEE]) {
+            // After an enumerator's name or finished value, or after a call/number expression,
+            // nothing ordinary begins with a call; share the balanced-argument scan so a mid-value
+            // juxtaposition such as `0 ITEMS(ADD) + 1` still falls back without rewinding.
             bool non_parameter = false;
-            lexer->result_symbol = JUXTAPOSED_CALLEE;
-            return skip_balanced_arguments(lexer, &non_parameter);
+            if (!skip_balanced_arguments(lexer, &non_parameter)) {
+                return false;
+            }
+            if (enumerator_annotation && enumerator_annotation_tail_follows(lexer)) {
+                lexer->result_symbol = ENUMERATOR_ANNOTATION_CALLEE;
+                return true;
+            }
+            if (valid_symbols[JUXTAPOSED_CALLEE]) {
+                lexer->result_symbol = JUXTAPOSED_CALLEE;
+                return true;
+            }
+            return false;
         }
         if (valid_symbols[CLASS_ANNOTATION_CALLEE]) {
             lexer->result_symbol = CLASS_ANNOTATION_CALLEE;
@@ -2433,7 +2495,7 @@ bool tree_sitter_cpp_external_scanner_scan(void *payload, TSLexer *lexer, const 
                              valid_symbols[CLASS_ANNOTATION_CALLEE] || valid_symbols[CLASS_LEADING_ANNOTATION] ||
                              valid_symbols[FUNCTION_SUFFIX_ANNOTATION] || valid_symbols[JUXTAPOSED_CALLEE] ||
                              valid_symbols[SECTION_LABEL] || valid_symbols[LEADING_ANNOTATION_CALLEE] ||
-                             valid_symbols[MACRO_HEADER_CALLEE];
+                             valid_symbols[MACRO_HEADER_CALLEE] || valid_symbols[ENUMERATOR_ANNOTATION_CALLEE];
     if (valid_symbols[PREPROC_END_OF_INPUT]) {
         // A directive line still needs its end: a newline, or end of input on the last line.
         while (is_horizontal_space(lexer->lookahead) || lexer->lookahead == '\r') {

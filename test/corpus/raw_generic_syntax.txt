@@ -3243,3 +3243,145 @@ class DB
             (identifier)
             (argument_list
               (identifier))))))))
+
+================================================================================
+Enum and enumerator attributes and macro annotations
+================================================================================
+
+ENUM_INFO(Blueprint)
+enum class [[nodiscard]] MODULE_API Mode : uint8_t
+{
+  Idle META(Label = "Idle"),
+  Legacy [[deprecated("use Idle")]] META(Hidden) = 0,
+  Compat __attribute__((deprecated)) = 1 META(Label = "Compat"),
+  Shifted = 1 << 1 META(Label = "Shifted"),
+  Alias = Shifted META(Label = "Alias"),
+  Grouped = (1 << 2) META(Label = "Grouped"),
+  Custom META(TYPE value),
+#ifdef EXTRA
+  Preview META(Label = "Preview")
+#endif
+};
+
+enum DEPRECATED(5.2, "use Mode") OldMode
+{
+  First META(Hidden)
+};
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (uncertain_macro_invocation
+    (identifier)
+    (argument_list
+      (identifier)))
+  (enum_specifier
+    (attribute_declaration
+      (attribute
+        (identifier)))
+    (uncertain_specifier
+      (identifier))
+    (type_identifier)
+    (primitive_type)
+    (enumerator_list
+      (enumerator
+        (identifier)
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (assignment_expression
+              (identifier)
+              (string_literal
+                (string_content))))))
+      (enumerator
+        (identifier)
+        (attribute_declaration
+          (attribute
+            (identifier)
+            (argument_list
+              (string_literal
+                (string_content)))))
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (identifier)))
+        (number_literal))
+      (enumerator
+        (identifier)
+        (attribute_specifier
+          (argument_list
+            (identifier)))
+        (number_literal)
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (assignment_expression
+              (identifier)
+              (string_literal
+                (string_content))))))
+      (enumerator
+        (identifier)
+        (binary_expression
+          (number_literal)
+          (number_literal))
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (assignment_expression
+              (identifier)
+              (string_literal
+                (string_content))))))
+      (enumerator
+        (identifier)
+        (identifier)
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (assignment_expression
+              (identifier)
+              (string_literal
+                (string_content))))))
+      (enumerator
+        (identifier)
+        (parenthesized_expression
+          (binary_expression
+            (number_literal)
+            (number_literal)))
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (assignment_expression
+              (identifier)
+              (string_literal
+                (string_content))))))
+      (enumerator
+        (identifier)
+        (uncertain_specifier
+          (identifier)
+          (uncertain_arguments)))
+      (preproc_ifdef
+        (identifier)
+        (enumerator
+          (identifier)
+          (uncertain_specifier
+            (identifier)
+            (argument_list
+              (assignment_expression
+                (identifier)
+                (string_literal
+                  (string_content)))))))))
+  (enum_specifier
+    (uncertain_specifier
+      (identifier)
+      (argument_list
+        (number_literal)
+        (string_literal
+          (string_content))))
+    (type_identifier)
+    (enumerator_list
+      (enumerator
+        (identifier)
+        (uncertain_specifier
+          (identifier)
+          (argument_list
+            (identifier)))))))
