@@ -151,7 +151,9 @@ def test_sources_are_preserved_and_generated_outputs_stay_in_owned_workspace(tmp
     assert not any(call[0] == "git" for call in calls)
 
 
-@pytest.mark.parametrize("name", ["src/scanner.c", "tree-sitter.json", "queries/tags.scm", "test/corpus/new.txt"])
+@pytest.mark.parametrize("name", [
+    "src/scanner.c", "src/scanner/new.h", "tree-sitter.json", "queries/tags.scm", "test/corpus/new.txt",
+])
 def test_every_handwritten_input_including_new_corpus_files_changes_build_identity(tmp_path, monkeypatch, name):
     cache, checkout, _calls = editable(tmp_path, monkeypatch)
     first = dev.compile_editable(cache, checkout)

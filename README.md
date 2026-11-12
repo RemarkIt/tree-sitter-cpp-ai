@@ -84,6 +84,16 @@ Clang-checked fixtures, a regression gate, corpus census and timing against
 upstream, deterministic GLR parse-work checks, and investigation tools to
 reduce, anonymize, diff and profile parses.
 
+## Source layout
+
+`grammar.js` extends upstream's grammar; each external token's contract is
+documented at its declaration in `externals`. The external scanner is
+`src/scanner.c`, which lists every token beside the function that decides it
+and includes its modules from `src/scanner/`: `lexing.h` (characters, words,
+trivia, literals), `words.h` (keyword lists), `balanced.h` (bracket, block and
+argument scans), `conditionals.h` (preprocessor conditionals),
+`declarations.h` (annotation and macro certification) and `raw_strings.h`.
+
 ## License
 
 MIT, as upstream. See [LICENSE](LICENSE).

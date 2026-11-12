@@ -5,7 +5,7 @@ import re
 
 import cpp_build as build
 
-SCANNER = (build.ROOT / "src" / "scanner.c").read_text(encoding="utf-8")
+SCANNER = (build.ROOT / "src" / "scanner" / "words.h").read_text(encoding="utf-8")
 LISTS = dict(re.findall(r"static const char \*const (\w+)\[\] = \{(.*?)\};", SCANNER, re.S))
 
 

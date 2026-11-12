@@ -53,10 +53,10 @@ def run(argv: list[str], cwd: Path, log: Path, timeout: int = 300) -> str:
 
 
 def source_hashes(checkout: Path) -> dict[str, str]:
-    return {
-        name: digest(checkout / name)
-        for name in ("grammar.js", "package-lock.json", "src/scanner.c", "src/parser.c")
-    }
+    names = ["grammar.js", "package-lock.json", "src/scanner.c", "src/parser.c"]
+    # Scanner modules included by scanner.c; checkouts without them (upstream) keep their identity.
+    names += [path.relative_to(checkout).as_posix() for path in sorted((checkout / "src/scanner").glob("*.h"))]
+    return {name: digest(checkout / name) for name in names}
 
 
 def prepare(cache: Path, source: str, patch: Path, cli_binary: Path | None = None) -> dict[str, Any]:

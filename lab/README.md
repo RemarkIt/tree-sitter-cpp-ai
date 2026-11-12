@@ -36,8 +36,8 @@ binary, verified by version and hash, instead of npm's binary download.
 ```
 
 `build` copies the handwritten generation inputs (`grammar.js`,
-`src/scanner.c`, package manifests and lock, `tree-sitter.json`, queries and
-tests) into an owned workspace, so generation never writes into the checkout.
+`src/scanner.c` and its `src/scanner/*.h` modules, package manifests and lock,
+`tree-sitter.json`, queries and tests) into an owned workspace, so generation never writes into the checkout.
 Unchanged inputs reuse their library; each input identity gets a distinct
 library path. A new top-level `*.js` module or `src/*.[ch]` file fails until it
 is added to the recipe in `cpp_dev.py`. `generated` exits 1 when the committed

@@ -5,9 +5,11 @@ on:
     branches: [main]
     paths:
       - src/scanner.c
+      - src/scanner/**
   pull_request:
     paths:
       - src/scanner.c
+      - src/scanner/**
 
 jobs:
   fuzz:

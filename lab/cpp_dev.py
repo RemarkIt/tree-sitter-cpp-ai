@@ -30,6 +30,8 @@ def source_inputs(checkout: Path) -> dict[str, str]:
     for directory in ("queries", "test/corpus", "test/highlight", "test/tags"):
         if (checkout / directory).is_dir():
             candidates.extend(sorted((checkout / directory).rglob("*")))
+    # The scanner's modules, which scanner.c includes.
+    candidates.extend(sorted((checkout / "src/scanner").glob("*.h")))
     # A new grammar module or C source must join the recipe explicitly, never silently.
     unknown = [
         path.relative_to(checkout).as_posix() for path in [*checkout.glob("*.js"), *(checkout / "src").glob("*.[ch]")]

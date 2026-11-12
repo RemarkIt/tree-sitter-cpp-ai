@@ -19,6 +19,14 @@
       ],
       "injections": "queries/injections.scm",
       "tags": "queries/tags.scm",
+      "external-files": [
+        "src/scanner/balanced.h",
+        "src/scanner/conditionals.h",
+        "src/scanner/declarations.h",
+        "src/scanner/lexing.h",
+        "src/scanner/raw_strings.h",
+        "src/scanner/words.h"
+      ],
       "injection-regex": "^(cc|cpp)$"
     }
   ],
