@@ -259,6 +259,7 @@ module.exports = grammar(C, {
 
   conflicts: $ => [
     // C
+    [$._type_declarator, $.template_type],
     [$.type_specifier, $._declarator],
     [$.type_specifier, $.expression],
     [$.sized_type_specifier],
@@ -542,10 +543,15 @@ module.exports = grammar(C, {
 
     type_qualifier: (_, original) => choice(
       original,
+      // MSVC and GCC accept `__restrict` wherever `__restrict__` may stand, as in `T __restrict p`.
+      // After `*` it stays the pointer modifier upstream reads there.
+      '__restrict',
       'mutable',
       'constinit',
       'consteval',
     ),
+
+    ms_restrict_modifier: _ => prec(1, '__restrict'),
 
     type_descriptor: $ => prec.right(seq(
       repeat($.type_qualifier),
@@ -656,18 +662,30 @@ module.exports = grammar(C, {
 
     declaration: $ => seq(
       $._declaration_specifiers,
-      commaSep1(field('declarator', choice(
-        seq(
+      commaSep1(choice(
+        field('declarator', seq(
           // C uses _declaration_declarator here for some nice macro parsing in function declarators,
           // but this causes a world of pain for C++ so we'll just stick to the normal _declarator here.
           optional($.ms_call_modifier),
           $._declarator,
           optional($.gnu_asm_expression),
-        ),
-        $.init_declarator,
-      ))),
+        )),
+        $._attributed_declaration_declarator,
+        field('declarator', $.init_declarator),
+      )),
       ';',
     ),
+
+    // GNU attributes after the declarator: `int buf[4] __attribute__((aligned(4)));`. A function
+    // declarator keeps its own trailing attributes, as in `char *f(void) __attribute__((x));`.
+    _attributed_declaration_declarator: $ => prec.dynamic(-1, seq(
+      field('declarator', seq(
+        optional($.ms_call_modifier),
+        $._declarator,
+        optional($.gnu_asm_expression),
+      )),
+      repeat1($.attribute_specifier),
+    )),
 
     virtual_specifier: _ => choice(
       'final', // the only legal value here for classes
@@ -935,6 +953,7 @@ module.exports = grammar(C, {
       commaSep(choice(
         $.parameter_declaration,
         $.optional_parameter_declaration,
+        alias($._constrained_type_parameter_default, $.optional_parameter_declaration),
         $.type_parameter_declaration,
         $.variadic_parameter_declaration,
         $.variadic_type_parameter_declaration,
@@ -962,6 +981,15 @@ module.exports = grammar(C, {
       field('default_type', $.type_specifier),
       optional(field('declarator', choice($.abstract_pointer_declarator, $.abstract_reference_declarator))),
     ),
+
+    // `template<Integral T = int>`: a constrained type parameter defaults to a type. Any
+    // expression reading of the default wins, so `template<int N = M>` keeps its tree.
+    _constrained_type_parameter_default: $ => prec.dynamic(-1, seq(
+      $._declaration_specifiers,
+      field('declarator', $._declarator),
+      '=',
+      field('default_value', $.type_descriptor),
+    )),
 
     template_template_parameter_declaration: $ => seq(
       'template',
@@ -1021,6 +1049,13 @@ module.exports = grammar(C, {
 
     init_declarator: ($, original) => choice(
       original,
+      // `int x __attribute__((weak)) = 1;`: GNU attributes precede the initializer.
+      seq(
+        field('declarator', $._declarator),
+        repeat1($.attribute_specifier),
+        '=',
+        field('value', choice($.initializer_list, $.expression)),
+      ),
       seq(
         field('declarator', $._declarator),
         field('value', choice(
@@ -1102,10 +1137,11 @@ module.exports = grammar(C, {
       ';',
     ),
 
-    // Members take a calling convention before the declarator, as declarations do.
+    // Members take a calling convention before the declarator, as declarations do. An unnamed
+    // bit-field pads or aligns: `unsigned : 3;`.
     field_declaration: $ => seq(
       $._declaration_specifiers,
-      commaSep(seq(
+      commaSep(choice(seq(
         optional($.ms_call_modifier),
         field('declarator', $._field_declarator),
         optional(choice(
@@ -1113,7 +1149,7 @@ module.exports = grammar(C, {
           field('default_value', $.initializer_list),
           seq('=', field('default_value', choice($.expression, $.initializer_list))),
         )),
-      )),
+      ), $.bitfield_clause)),
       optional($.attribute_specifier),
       ';',
     ),
@@ -1339,6 +1375,7 @@ module.exports = grammar(C, {
 
     _type_declarator: ($, original) => choice(
       original,
+      alias($._member_pointer_type_declarator, $.pointer_declarator),
       alias($.annotated_type_declarator, $.annotated_declarator),
       alias($.reference_type_declarator, $.reference_declarator),
     ),
@@ -1389,6 +1426,14 @@ module.exports = grammar(C, {
       '*',
       repeat($.type_qualifier),
       field('declarator', $._field_declarator),
+    ))),
+
+    // `typedef void (C::*Method)();`: a typedef names a pointer to member, as a member does.
+    _member_pointer_type_declarator: $ => prec.dynamic(1, prec.right(seq(
+      $._scope_resolution,
+      '*',
+      repeat($.type_qualifier),
+      field('declarator', $._type_declarator),
     ))),
 
     reference_declarator: $ => prec.dynamic(1, prec.right(seq(choice('&', '&&'), $._declarator))),
@@ -1647,6 +1692,24 @@ module.exports = grammar(C, {
       $.throw_statement,
     ),
 
+    // GNU case ranges: `case 'a' ... 'z':`.
+    case_statement: $ => prec.right(seq(
+      choice(
+        seq(
+          'case',
+          field('value', $.expression),
+          optional(seq('...', field('range_end', $.expression))),
+        ),
+        'default',
+      ),
+      ':',
+      repeat(choice(
+        $._non_case_statement,
+        $.declaration,
+        $.type_definition,
+      )),
+    )),
+
     _non_case_statement: ($, original) => choice(
       original,
       $.uncertain_macro_invocation,
@@ -1899,6 +1962,7 @@ module.exports = grammar(C, {
       optional(choice('::', alias($._ref_new, 'ref'))),
       'new',
       field('placement', optional($.argument_list)),
+      repeat($.type_qualifier),
       field('type', $.type_specifier),
       field('declarator', optional(choice($.new_declarator, $._new_pointer_declarator))),
       field('arguments', optional(choice(
@@ -1920,9 +1984,13 @@ module.exports = grammar(C, {
     delete_expression: $ => seq(
       optional('::'),
       'delete',
-      optional(seq('[', ']')),
+      optional($._delete_array),
       $.expression,
     ),
+
+    // `delete[] (char*)p`: brackets after `delete` declare an array delete, never a lambda's
+    // empty capture, so a parenthesized operand stays a cast rather than lambda parameters.
+    _delete_array: _ => prec(PREC.LAMBDA + 1, seq('[', ']')),
 
     field_expression: $ => seq(
       prec(PREC.FIELD, seq(
@@ -2349,6 +2417,8 @@ module.exports = grammar(C, {
         field('type', choice(
           $._class_name,
           $.primitive_type,
+          // `long{1}`: reserved size modifiers name no class, so the type is spelled as such.
+          $.sized_type_specifier,
           $.decltype,
           seq(optional('typename'), $.splice_type_specifier))),
         field('value', $.initializer_list),

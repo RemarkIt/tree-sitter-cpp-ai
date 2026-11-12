@@ -55,7 +55,7 @@ readings that share a parse state.
    - held-out corpora that were never used for development confirm the change
      generalizes. Once a held-out corpus has guided a change, it becomes a
      development corpus; measure generalization on a newly selected sample
-     instead, such as [fresh.json](../lab/corpora/fresh.json);
+     instead, as [fresh.json](../lab/corpora/fresh.json) was for release 0.1.0;
    - timing and deterministic parse work stay within budget (medians ≤1.20×,
      p95 and incremental ≤1.25× of upstream).
 

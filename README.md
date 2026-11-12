@@ -57,6 +57,15 @@ come from files upstream already misparsed, where text such as
 read as a function definition; the real functions and constructors appear in
 their place (320 spans).
 
+That measurement was blind. Its failures then exposed standard syntax that
+neither upstream nor the fork parsed: GNU attributes after declarators, unnamed
+bit-fields, GNU case ranges, pointer-to-member typedefs, `new const T`,
+`delete[] (T*)p`, `long{1}`, `T __restrict p` and constrained template
+parameters with type defaults. With those fixed, the same sample has 99 files
+with errors (7.6%), 753 ERROR and 137 MISSING nodes and 26,921 ERROR-region
+bytes, with no file newly broken and no error-free tree changed. Because these
+failures guided the fixes, the sample now also counts as development code.
+
 On the code the grammar was developed against, the gap is wider:
 [lab/corpora/heldout.json](lab/corpora/heldout.json), 954 files from ten other
 repositories that were held out at first and later used for development, goes

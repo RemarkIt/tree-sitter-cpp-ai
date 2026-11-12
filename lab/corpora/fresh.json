@@ -1,6 +1,6 @@
 {
   "name": "fresh",
-  "description": "One-shot sample of first-party C/C++ sources from public repositories never used to develop or tune the grammar; selection was fixed before the first parse.",
+  "description": "One-shot sample of first-party C/C++ sources from public repositories not used to develop the grammar before release 0.1.0; selection was fixed before the first parse. Its 0.1.0 failures later guided standard-syntax fixes, so it is no longer a blind sample.",
   "selection": "Per repository, C/C++ source and header files excluding vendored, third-party and generated files; up to 100 files chosen by SHA-256 of the repository-relative path.",
   "repos": {
     "bitcoin": {

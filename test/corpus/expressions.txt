@@ -1723,3 +1723,94 @@ template <typename... Args> void negateValues(Args... args) {
                     (identifier)))
                 (string_literal
                   (string_content))))))))))
+
+=======================================
+Functional casts of size-modified types
+=======================================
+
+void widen() {
+  take(long{1});
+  auto v = unsigned{2};
+}
+
+---
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list))
+    (compound_statement
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (compound_literal_expression
+              (sized_type_specifier)
+              (initializer_list
+                (number_literal))))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (compound_literal_expression
+            (sized_type_specifier)
+            (initializer_list
+              (number_literal))))))))
+
+==========================================
+Cv-qualified new and array delete of casts
+==========================================
+
+void manage(void *raw) {
+  auto p = new const char('a');
+  delete[] (unsigned char *)raw;
+  auto empty = []() { return 0; };
+}
+
+---
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (pointer_declarator
+            (identifier)))))
+    (compound_statement
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (new_expression
+            (type_qualifier)
+            (primitive_type)
+            (argument_list
+              (char_literal
+                (character))))))
+      (expression_statement
+        (delete_expression
+          (cast_expression
+            (type_descriptor
+              (sized_type_specifier
+                (primitive_type))
+              (abstract_pointer_declarator))
+            (identifier))))
+      (declaration
+        (placeholder_type_specifier
+          (auto))
+        (init_declarator
+          (identifier)
+          (lambda_expression
+            (lambda_capture_specifier)
+            (lambda_declarator
+              (parameter_list))
+            (compound_statement
+              (return_statement
+                (number_literal)))))))))

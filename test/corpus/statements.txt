@@ -652,3 +652,40 @@ void foo() {
             (operator_name))
           (argument_list
             (number_literal)))))))
+
+===============
+GNU case ranges
+===============
+
+void classify(int c) {
+  switch (c) {
+    case 'a' ... 'z': break;
+    case 0: break;
+  }
+}
+
+---
+
+(translation_unit
+  (function_definition
+    (primitive_type)
+    (function_declarator
+      (identifier)
+      (parameter_list
+        (parameter_declaration
+          (primitive_type)
+          (identifier))))
+    (compound_statement
+      (switch_statement
+        (condition_clause
+          (identifier))
+        (compound_statement
+          (case_statement
+            (char_literal
+              (character))
+            (char_literal
+              (character))
+            (break_statement))
+          (case_statement
+            (number_literal)
+            (break_statement)))))))

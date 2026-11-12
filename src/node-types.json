@@ -1467,6 +1467,16 @@
     "type": "case_statement",
     "named": true,
     "fields": {
+      "range_end": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      },
       "value": {
         "multiple": false,
         "required": false,
@@ -1832,6 +1842,10 @@
           },
           {
             "type": "qualified_identifier",
+            "named": true
+          },
+          {
+            "type": "sized_type_specifier",
             "named": true
           },
           {
@@ -4394,6 +4408,16 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "attribute_specifier",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -4866,6 +4890,11 @@
     }
   },
   {
+    "type": "ms_restrict_modifier",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "ms_unaligned_ptr_modifier",
     "named": true,
     "fields": {}
@@ -5041,6 +5070,16 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "type_qualifier",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -5215,6 +5254,10 @@
           },
           {
             "type": "initializer_list",
+            "named": true
+          },
+          {
+            "type": "type_descriptor",
             "named": true
           }
         ]
@@ -9024,6 +9067,10 @@
     "named": false
   },
   {
+    "type": "__restrict",
+    "named": false
+  },
+  {
     "type": "__restrict__",
     "named": false
   },
@@ -9255,10 +9302,6 @@
   {
     "type": "module",
     "named": false
-  },
-  {
-    "type": "ms_restrict_modifier",
-    "named": true
   },
   {
     "type": "ms_signed_ptr_modifier",

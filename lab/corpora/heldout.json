@@ -1,6 +1,6 @@
 {
   "name": "heldout",
-  "description": "Development sample of first-party C/C++ sources from ten public repositories; held out at first, later used to develop grammar changes. Use fresh.json to measure generalization.",
+  "description": "Development sample of first-party C/C++ sources from ten public repositories; held out at first, later used to develop grammar changes. A new, unparsed sample is needed to measure generalization.",
   "selection": "Per repository, C/C++ source and header files excluding vendored, third-party and generated files; up to 100 files chosen by SHA-256 of the repository-relative path.",
   "repos": {
     "terminal": {"url": "https://github.com/microsoft/terminal.git", "commit": "cbc857bdf7749981890c5b561ee44ea31948bfb1", "eligible": 1076, "sampled": 100},
