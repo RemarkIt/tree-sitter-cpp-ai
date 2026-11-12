@@ -946,17 +946,17 @@ static bool class_annotation_follows(TSLexer *lexer) {
 }
 
 /// After a class key and a first bare identifier A (read; its end already marked): a second bare
-/// identifier directly followed by `{` has no ordinary reading other than `A` annotating that
-/// name, once the block it opens is certified a member declaration list. Stacked annotations and
-/// a base-clause after the name fall back to the ordinary GLR reading.
+/// identifier followed by `{`, on the same or a later line, has no ordinary reading other than `A`
+/// annotating that name, once the block it opens is certified a member declaration list. Stacked
+/// annotations and a base-clause after the name fall back to the ordinary GLR reading.
 static bool class_leading_annotation_follows(TSLexer *lexer) {
     skip_horizontal_space(lexer);
     Word word;
     if (!is_identifier_start(lexer->lookahead) || !read_word(lexer, &word) || word_in(&word, KEYWORDS)) {
         return false;
     }
-    skip_horizontal_space(lexer);
-    return lexer->lookahead == '{' && class_body_members_follow(lexer);
+    bool newline = false;
+    return skip_trivia(lexer, &newline) && lexer->lookahead == '{' && class_body_members_follow(lexer);
 }
 
 /// At a class member's start, after a word and before its `:`: certify the word as a section

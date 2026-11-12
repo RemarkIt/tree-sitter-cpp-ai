@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(tree-sitter-cpp-ai
-        VERSION "0.1.1"
+        VERSION "0.1.2"
         DESCRIPTION "C/C++ grammar for tree-sitter with generic recovery of macro-shaped syntax (fork of tree-sitter-cpp)"
         HOMEPAGE_URL "https://github.com/RemarkIt/tree-sitter-cpp-ai"
         LANGUAGES C)

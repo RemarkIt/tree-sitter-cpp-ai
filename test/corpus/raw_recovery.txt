@@ -106,6 +106,54 @@ struct LEVELDB_EXPORT Options {
         (field_identifier)))))
 
 ==================
+A class-head annotation is certified when its body opens on a later line, while a braced
+initializer on a later line stays a variable
+==================
+class EXPORT_API Session
+{
+public:
+  void close();
+};
+struct EXPORT_API Options // tuning
+{
+  int block_size;
+};
+struct Point origin
+{
+  1, 2
+};
+---
+(translation_unit
+  (class_specifier
+    (uncertain_specifier
+      (identifier))
+    (type_identifier)
+    (field_declaration_list
+      (access_specifier)
+      (field_declaration
+        (primitive_type)
+        (function_declarator
+          (field_identifier)
+          (parameter_list)))))
+  (struct_specifier
+    (uncertain_specifier
+      (identifier))
+    (type_identifier)
+    (comment)
+    (field_declaration_list
+      (field_declaration
+        (primitive_type)
+        (field_identifier))))
+  (declaration
+    (struct_specifier
+      (type_identifier))
+    (init_declarator
+      (identifier)
+      (initializer_list
+        (number_literal)
+        (number_literal)))))
+
+==================
 Function-like macro used as a type before a same-line declarator
 ==================
 DECLARE_HANDLE(Session) current;
