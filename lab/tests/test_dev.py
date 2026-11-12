@@ -95,6 +95,14 @@ def test_dependency_drift_is_not_silently_accepted(tmp_path, monkeypatch):
         dev.compile_editable(cache, checkout)
 
 
+def test_release_version_bump_is_not_dependency_drift(tmp_path, monkeypatch):
+    cache, checkout, _calls = editable(tmp_path, monkeypatch)
+    lock = json.loads((checkout / "package-lock.json").read_text())
+    lock["version"] = lock["packages"][""]["version"] = "99.0.0"
+    (checkout / "package-lock.json").write_text(json.dumps(lock, indent=2))
+    assert dev.compile_editable(cache, checkout)["cached"] is False
+
+
 def test_incomplete_setup_requires_explicit_initialization(tmp_path, monkeypatch):
     cache, checkout, calls = editable(tmp_path, monkeypatch)
     marker = cache / "dev/setup.json"

@@ -54,6 +54,21 @@ def source_inputs(checkout: Path) -> dict[str, str]:
     return dict(sorted(inputs.items()))
 
 
+def dependency_lock_digest(checkout: Path) -> str:
+    """Fingerprint the npm lock's dependencies, ignoring this package's own release version."""
+    raw = (checkout / "package-lock.json").read_bytes()
+    try:
+        lock = json.loads(raw)
+    except ValueError:
+        return hashlib.sha256(raw).hexdigest()
+    if isinstance(lock, dict):
+        lock.pop("version", None)
+        root = lock.get("packages", {}).get("")
+        if isinstance(root, dict):
+            root.pop("version", None)
+    return hashlib.sha256(json.dumps(lock, sort_keys=True).encode()).hexdigest()
+
+
 def synchronize(checkout: Path, workspace: Path, inputs: dict[str, str]) -> None:
     if workspace.is_symlink():
         raise build.BenchError(f"Symlink generation workspace: {workspace}")
@@ -88,7 +103,7 @@ def initialize(cache: Path, checkout: Path) -> dict[str, Any]:
             or Path(saved["workspace"]) != workspace
         ):
             raise build.BenchError(f"Preserve legacy/unmatched development setup before initializing: {marker}")
-        if inputs["package-lock.json"] != saved["lock_sha256"]:
+        if dependency_lock_digest(checkout) != saved["lock_sha256"]:
             raise build.BenchError("Dependency lock changed; use a fresh --cache.")
         if build.digest(Path(saved["cli"])) != saved["cli_sha256"]:
             raise build.BenchError("Development CLI changed; use a fresh --cache.")
@@ -98,7 +113,7 @@ def initialize(cache: Path, checkout: Path) -> dict[str, Any]:
         saved = {
             "schema": 2, "checkout": str(checkout), "workspace": str(workspace),
             "revision": build.REVISION, "dependencies_ready": False,
-            "lock_sha256": inputs["package-lock.json"],
+            "lock_sha256": dependency_lock_digest(checkout),
             "cli": baseline["cli"], "cli_sha256": baseline["cli_sha256"],
         }
         build.write_json(marker, saved)
@@ -121,7 +136,7 @@ def development(cache: Path, checkout: Path) -> dict[str, Any]:
     ):
         raise build.BenchError(f"Tracked sources do not match {marker}; preserve legacy setup and run init.")
     inputs = source_inputs(checkout)
-    if inputs["package-lock.json"] != saved["lock_sha256"]:
+    if dependency_lock_digest(checkout) != saved["lock_sha256"]:
         raise build.BenchError("Editable dependency lock changed; dependency updates require a fresh setup.")
     if build.digest(Path(saved["cli"])) != saved["cli_sha256"]:
         raise build.BenchError("Editable CLI changed; initialize a fresh development environment.")
