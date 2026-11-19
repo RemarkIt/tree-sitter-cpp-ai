@@ -61,6 +61,6 @@ jobs:
           # The Ubuntu Swift toolchain lacks libxml2.so.2; Swift bindings are unchanged from upstream.
           test-swift: false
       - name: Parse examples
-        uses: tree-sitter/parse-action@v4
+        uses: tree-sitter/parse-action@v5
         with:
           files: examples/*
